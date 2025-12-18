@@ -1,0 +1,66 @@
+{
+  "processId": "2840",
+  "searchCriteria": {
+    "role": "Backend Engineer",
+    "userId": "123",
+    "experience": "1-3 years",
+    "location": "United States"
+  },
+  "jobs": [
+    {
+      "url": "https://www.linkedin.com/jobs/view/backend-engineer-platform-at-hackajob-4320068055?position=1&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=%2FP3qMu456SA9uFTgWzDzMw%3D%3D",
+      "title": "Backend Engineer - Platform",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.765Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-frontend-javascript-developer-at-razor-4344922099?position=2&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=sYXGHy6Nbt15atpRcSgQug%3D%3D",
+      "title": "Junior FrontEnd Javascript Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.766Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/backend-engineer-ii-at-garner-health-llc-4344625376?position=3&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=RjG3lCFvsDG3XUTMJwVEAg%3D%3D",
+      "title": "Backend Engineer II",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.767Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/backend-engineer-events-and-notifications-at-verkada-3765972153?position=4&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=ubCGar1rwn%2FbGQkdYFeNxQ%3D%3D",
+      "title": "******* ******** - ****** *** *************",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.767Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-full-stack-ai-engineer-remote-at-lensa-4344734723?position=5&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=B1Zl8WSc6zH0MToV23iS%2Bg%3D%3D",
+      "title": "****** **** ***** ** ******** (******)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.767Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-at-fanduel-4311992335?position=6&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=UjUsJTpvs87hhUKHRQMr8A%3D%3D",
+      "title": "******** ********",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.768Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/back-end-engineer-at-amd-4281206487?position=7&pageNum=0&refId=GZByQr4GgCcMSXbzu38Mtg%3D%3D&trackingId=BFejX4DX8Es548RvG5rqXA%3D%3D",
+      "title": "**** *** ********",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.768Z"
+    }
+  ],
+  "channelStats": {
+    "LinkedIn": 7
+  },
+  "totalJobs": 7,
+  "createdAt": "2025-12-18T20:23:08.566Z",
+  "lastUpdated": "2025-12-18T20:23:08.566Z"
+}

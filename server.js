@@ -27,46 +27,47 @@ app.use(express.json());
 
 // Test route to verify Redis connection
 
-async function seedData(){  
-    const jobData = [
-        {
-            role: 'Software Engineer',
-            userId: '123',
-            experience: '1-3 years',
-            location: 'bangalore, India'
-        },
-        {
-            role: 'Frontend Engineer',
-            userId: '123',
-            experience: '1-3 years',
-            location: 'Delhi, India'
-        },
-        {
-            role: 'Backend Engineer',
-            userId: '123',
-            experience: '1-3 years',
-            location: 'Mumbai, India'
-        },
-        {
-            role: 'Full Stack Engineer',
-            userId: '123',
-            experience: '1-3 years',
-            location: 'Hyderabad, India'
-        }
-    ]
-
-    for (const job of jobData) {
-        await redisClient.lpush('link-request-queue', JSON.stringify(job));
+async function seedData() {
+  const jobData = [
+    {
+      role: 'Software Engineer',
+      userId: '123',
+      experience: '1-3 years',
+      location: 'United States'
+    },
+    {
+      role: 'Frontend Engineer',
+      userId: '123',
+      experience: '1-3 years',
+      location: 'United States'
+    },
+    {
+      role: 'Backend Engineer',
+      userId: '123',
+      experience: '1-3 years',
+      location: 'United States'
+    },
+    {
+      role: 'Full Stack Engineer',
+      userId: '123',
+      experience: '1-3 years',
+      location: 'United States'
     }
+  ]
 
-    console.log('Seed data added to Redis queue');
+  await redisClient.del('link-request-queue');
+  for (const job of jobData) {
+    await redisClient.lpush('link-request-queue', JSON.stringify(job));
+  }
+
+  console.log('Seed data added to Redis queue');
 }
 
 app.post('/api/v1/request-for-link', async (req, res) => {
   try {
     const { role, userId, experience, location } = req.body;
     // title = job role
-    
+
     const jobData = {
       role,
       userId,
@@ -76,7 +77,7 @@ app.post('/api/v1/request-for-link', async (req, res) => {
 
     // Add jobData to Redis queue
     await redisClient.lpush('link-request-queue', JSON.stringify(jobData));
-    
+
     res.status(200).json({ message: 'Link requested successfully, will show you data on frontend in few minutes' });
   } catch (error) {
     console.error('Error adding job to queue:', error);

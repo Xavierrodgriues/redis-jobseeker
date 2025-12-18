@@ -1,0 +1,66 @@
+{
+  "processId": "17372",
+  "searchCriteria": {
+    "role": "Software Engineer",
+    "userId": "123",
+    "experience": "1-3 years",
+    "location": "United States"
+  },
+  "jobs": [
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-new-grad-at-stripe-4294691515?position=1&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=Sya17wGTrljBxqycNG1VsA%3D%3D",
+      "title": "Software Engineer, New Grad",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.737Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-new-grad-at-stripe-4294691514?position=2&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=3tLxiR%2B%2FbbBFvgLXao3j%2Fg%3D%3D",
+      "title": "Software Engineer, New Grad",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.739Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344719814?position=3&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=NO1fztTR4COFbDVLkNlEww%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.740Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-early-career-at-suno-4347692837?position=4&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=IYNPGYagaCVn8ea07X8O0A%3D%3D",
+      "title": "******** ********, ***** ******",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.740Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-i-at-intuit-4344797437?position=5&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=4zqB9mDi74lD2gLTdEmN3A%3D%3D",
+      "title": "******** ******** *",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.740Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344890309?position=6&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=1mLk%2FbFdgeCBh6nmTcWLzA%3D%3D",
+      "title": "******** ******** *",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.740Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-developer-at-esker-4344852134?position=7&pageNum=0&refId=pzdtocc%2B53GPkeJMCfKGOg%3D%3D&trackingId=bvHkn2w2yA4SnmcrlyS1Qg%3D%3D",
+      "title": "******** *********",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.740Z"
+    }
+  ],
+  "channelStats": {
+    "LinkedIn": 7
+  },
+  "totalJobs": 7,
+  "createdAt": "2025-12-18T20:23:08.567Z",
+  "lastUpdated": "2025-12-18T20:23:08.567Z"
+}

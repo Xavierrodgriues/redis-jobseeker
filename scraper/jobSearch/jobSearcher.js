@@ -20,7 +20,7 @@ async function searchJobBoard(query, processId, minResults = 20) {
       try {
         const url = query.getUrl(page);
         console.log(`[Process ${processId}] Searching ${query.name} (page ${page + 1}) for: ${query.role} in ${query.location}`);
-        
+
         const response = await axios.get(url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -35,7 +35,7 @@ async function searchJobBoard(query, processId, minResults = 20) {
 
         const $ = cheerio.load(response.data);
         const pageLinks = query.extractor($, query.name);
-        
+
         if (pageLinks.length === 0) {
           console.log(`[Process ${processId}] No more results found on ${query.name} page ${page + 1}`);
           break;
@@ -357,7 +357,7 @@ async function searchJobLinks(jobData, processId) {
     // Combine all results and remove duplicates
     const allLinks = [];
     const seenUrls = new Set();
-    
+
     for (const [channel, links] of Object.entries(allJobLinks)) {
       for (const link of links) {
         // Normalize URL for duplicate detection
@@ -402,7 +402,7 @@ async function searchJobLinks(jobData, processId) {
 async function appendJobLinksToFile(searchResults, processId, jobData) {
   const fileName = `${processId}_jobs.json`;
   const filePath = path.join(__dirname, '..', 'data', fileName);
-  
+
   // Create data directory if it doesn't exist
   const dataDir = path.dirname(filePath);
   if (!fs.existsSync(dataDir)) {
@@ -435,17 +435,17 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
     // Normalize URL for duplicate detection
     return job.url ? job.url.split('?')[0].toLowerCase() : '';
   }));
-  
+
   const newJobs = searchResults.jobs.filter(link => {
     const normalizedUrl = link.url ? link.url.split('?')[0].toLowerCase() : '';
     return !existingUrls.has(normalizedUrl);
   });
-  
+
   existingData.jobs.push(...newJobs);
-  
+
   // Update channel statistics
   existingData.channelStats = searchResults.channelStats || {};
-  
+
   // Calculate channel-wise counts from actual jobs
   const channelCounts = {};
   existingData.jobs.forEach(job => {
@@ -453,7 +453,7 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
     channelCounts[channel] = (channelCounts[channel] || 0) + 1;
   });
   existingData.channelStats = channelCounts;
-  
+
   existingData.totalJobs = existingData.jobs.length;
 
   // Write to file
@@ -475,11 +475,13 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
  */
 async function searchAndSaveJobLinks(jobData, processId) {
   try {
+    // Force location to United States
+    jobData.location = "United States";
     console.log(`[Process ${processId}] Starting job search for:`, jobData);
-    
+
     // Search for job links from multiple platforms
     const searchResults = await searchJobLinks(jobData, processId);
-    
+
     if (searchResults.jobs.length === 0) {
       console.log(`[Process ${processId}] No job links found`);
       return;
@@ -487,7 +489,7 @@ async function searchAndSaveJobLinks(jobData, processId) {
 
     // Append to JSON file
     await appendJobLinksToFile(searchResults, processId, jobData);
-    
+
     console.log(`[Process ${processId}] Job search completed successfully`);
     console.log(`[Process ${processId}] Summary: ${searchResults.totalJobs} total jobs from ${Object.keys(searchResults.channelStats).length} channels`);
   } catch (error) {

@@ -1,0 +1,444 @@
+{
+  "processId": "13832",
+  "searchCriteria": {
+    "role": "Frontend Engineer",
+    "userId": "123",
+    "experience": "1-3 years",
+    "location": "United States"
+  },
+  "jobs": [
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-new-grad-at-stripe-4294691515?position=1&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=bYFkmer%2BdAUYRhl1G4fXwQ%3D%3D",
+      "title": "Software Engineer, New Grad",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.585Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-new-grad-at-stripe-4294691514?position=2&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=bz%2FNQ6PhrjJG2VO%2B08icDA%3D%3D",
+      "title": "Software Engineer, New Grad",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.587Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-developer-at-id-privacy-ai-4344609383?position=3&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=1ZDO%2FRj4DQ%2FMp3UySV4Pog%3D%3D",
+      "title": "Frontend Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.587Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-software-engineer-at-outset-4344489726?position=4&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=qUSzN75rfgzYmCP%2Bmcw%2BsA%3D%3D",
+      "title": "******** ******** ********",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.587Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-frontend-javascript-developer-at-razor-4344922099?position=5&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=C3kFJ82mtVvJt2EZTqlYaA%3D%3D",
+      "title": "****** ******** ********** *********",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.587Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/ui-front-end-developer-at-lensa-4344774304?position=6&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=eqtItBDqbfrGtYtwoTH9kA%3D%3D",
+      "title": "** ***** *** *********",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.588Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-engineer-podcast-at-spotify-4344900802?position=7&pageNum=0&refId=7BuKrr6tU7rYozeSJAd93A%3D%3D&trackingId=22ozFsVvToDEb%2Bcos51LFw%3D%3D",
+      "title": "******** ******** - *******",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:26.588Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-engineer-at-renofi-4344378932?position=7&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=o6KSmn3blEX1PwWkt%2F0%2Fmw%3D%3D",
+      "title": "Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.953Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/web-software-engineer-at-wing-4344498083?position=8&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=rsI7iNctxgVIykRykbcuMQ%3D%3D",
+      "title": "Web Software Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-frontend-developer-remote-at-executiveplacements-com-4344586898?position=9&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=STtEvCUyXj1ZQ1IW9ovvhw%3D%3D",
+      "title": "Junior Frontend Developer (Remote)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/senior-frontend-engineer-at-tessera-data-4344716261?position=10&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=1bFW84GnRuxvyHbZxYVYQQ%3D%3D",
+      "title": "Senior Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-developer-%E2%80%93-react-web-app-at-twine-4344716663?position=11&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=%2FY4HJW1JhjsFBTkQ6E7mEw%3D%3D",
+      "title": "Frontend Developer – React Web App",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-software-engineer-at-accuris-4347575712?position=12&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=xcpybRn9p3DgAgaYeJ7Bwg%3D%3D",
+      "title": "Junior Software Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-engineer-react-experience-at-o-reilly-auto-parts-4314874123?position=13&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=CsCqnXLlVlT2w3VCCbe3fA%3D%3D",
+      "title": "Frontend Engineer (React Experience)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-i-at-intuit-4344797437?position=14&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=A8Rdyv%2F4mZqRC2Jv6dLm1w%3D%3D",
+      "title": "Software Engineer I",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/senior-frontend-developer-at-protagona-4344651935?position=15&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=VbkfspDo%2BjsZQN0gJ2wy2g%3D%3D",
+      "title": "Senior Frontend Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-i-frontend-at-lensa-4344585345?position=16&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=KG3bNxXarcSpFpKtR0f4NA%3D%3D",
+      "title": "Software Engineer I, Frontend",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344890309?position=17&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=JxGam42bUNWnlSm3pnsIjw%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344719814?position=18&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=UFCGDnsqZWuZ5aBvu%2B2Dcw%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-i-innovation-at-nike-4344645825?position=19&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=MBa7UcwqKX8M7x6VgWNfjg%3D%3D",
+      "title": "Software Engineer I - Innovation",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-frontend-all-teams-at-doordash-4191612607?position=20&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=TRPH2786q7k7DlGEFCPFLg%3D%3D",
+      "title": "Software Engineer, Frontend (All Teams)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-web-developer-at-air-apps-4344794544?position=21&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=M4YQ%2FV0Rdf%2F7S60LfRLycA%3D%3D",
+      "title": "Frontend Web Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-frontend-at-autopilot-4304076816?position=22&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=yn9za1nfzYcOSsPYIP9QYA%3D%3D",
+      "title": "Software Engineer (Frontend)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/front-end-engineer-at-teksystems-4344419997?position=23&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=DLSqg8VIggb3xG6yPLAj%2BQ%3D%3D",
+      "title": "Front End Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/react-js-developer-remote-at-lensa-4344734717?position=24&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=k0IMRwmQjpUmsXRme296sg%3D%3D",
+      "title": "React JS Developer - REMOTE",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344643885?position=25&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=gMVNdlPDFnU5CKmG5yKgDA%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-early-career-at-suno-4347692837?position=26&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=PetW2c1fjNF59esTbOKvZw%3D%3D",
+      "title": "Software Engineer, Early Career",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344800838?position=27&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=skoOC0qC2h0f%2BhYj6DUtHw%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.954Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-frontend-all-teams-at-doordash-4191619014?position=28&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=oXG1muKRdwAnnICz78KILg%3D%3D",
+      "title": "Software Engineer, Frontend (All Teams)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-i-at-lensa-4344714662?position=29&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=xr%2BMWzd3ROXS8yR2Zh3%2B2g%3D%3D",
+      "title": "Software Engineer I",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/middle-frontend-engineer-at-lensa-4344655347?position=30&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=6VF1ApAn5J%2FWNO9y9pzk8g%3D%3D",
+      "title": "Middle Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/front-end-software-developer-hybrid%21-at-anavation-llc-4344508318?position=31&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=6BCI8jvOich7LQjJ6wwjgQ%3D%3D",
+      "title": "Front-End Software Developer HYBRID!",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-frontend-all-teams-at-doordash-4191613602?position=32&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=phQFTZ1%2BvT0PyYIjOf7K0A%3D%3D",
+      "title": "Software Engineer, Frontend (All Teams)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-javascript-developer-at-alignerr-4344644437?position=33&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=QjOnO5bqmSk4Li%2F0WzUOLQ%3D%3D",
+      "title": "Frontend JavaScript Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-software-developer-web-mobile-at-uf-information-technology-ufit-4344790770?position=34&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=LecO3PU5ZDXD%2FmbAX%2FfrBA%3D%3D",
+      "title": "Junior Software Developer - Web & Mobile",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-javascript-engineer-at-alignerr-4344684186?position=35&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=ae4KicOyp2J0yioBQYrKZw%3D%3D",
+      "title": "Frontend JavaScript Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/senior-frontend-engineer-at-quantlink-ai-4327995994?position=36&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=DlTcMcTSGdUd6qF963UCyw%3D%3D",
+      "title": "Senior Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-intuit-4344850546?position=37&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=bRQLAFDm9dwu9ROBoSvKZw%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-at-column-4144967742?position=38&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=hZPb7ThZmtA1cuZjy6pSKw%3D%3D",
+      "title": "Software Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/front-end-software-engineer-at-lmi-4344509954?position=39&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=uB4alED%2BBiV%2FL7zx1hnxLw%3D%3D",
+      "title": "Front End Software Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-frontend-at-suno-4347742633?position=40&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=%2BGoaf%2F1KKmDkkYaJecabnw%3D%3D",
+      "title": "Software Engineer, Frontend",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/front-end-engineer-business-systems-at-verkada-4344752802?position=41&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=HjXGed9tgBMyUhHh%2FTjP8w%3D%3D",
+      "title": "Front End Engineer, Business Systems",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-typescript-engineer-at-alignerr-4344624463?position=42&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=O9ie%2FooENQ5c1UcNZQJyVg%3D%3D",
+      "title": "Frontend TypeScript Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.955Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-early-career-at-suno-4347694837?position=43&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=GmIjb9nvScLHuLSTGm1RMw%3D%3D",
+      "title": "Software Engineer, Early Career",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-engineer-at-rygen-technologies-4344786267?position=44&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=iBGtw2BBi8Npei8AYZD3pA%3D%3D",
+      "title": "Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-ii-at-tessera-data-4344726439?position=45&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=3d3rTP6HdpbITzii%2FKTU4A%3D%3D",
+      "title": "Software Engineer II",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-frontend-at-suno-4347724763?position=46&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=jfwlS8eqWgecBpRz0ADiVQ%3D%3D",
+      "title": "Software Engineer, Frontend",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-typescript-developer-at-alignerr-4344743600?position=47&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=ESZRli8GIuaCQt6ECAUJdg%3D%3D",
+      "title": "Frontend TypeScript Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-at-fanduel-4344468725?position=48&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=8x1Om12%2FewzMqP%2BDl1Y10g%3D%3D",
+      "title": "Software Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-ui-engineer-at-mercor-4344639785?position=49&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=sFE6%2Bk%2BwxyE8JqXqxJq%2BiQ%3D%3D",
+      "title": "Frontend UI Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-i-at-lensa-4344754213?position=50&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=38ReuLERnnOOlp6sXTcAkQ%3D%3D",
+      "title": "Software Engineer I",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/front-end-developer-magento-at-ledgent-technology-4345011775?position=51&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=VCVnCP80CTNDl0k645qlRw%3D%3D",
+      "title": "Front-end Developer (Magento)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-1-at-lensa-4344684907?position=52&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=5oeFO6IDA82R3KslwR5g5Q%3D%3D",
+      "title": "Software Engineer 1",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-engineer-at-e-solutions-4344881306?position=53&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=yX271CbIx9a6L45iXzs%2BKQ%3D%3D",
+      "title": "Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/frontend-ui-engineer-at-ai-cybersecurity-company-4328094214?position=54&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=uQNq7OK5yPbH%2F5sZ8vtdQA%3D%3D",
+      "title": "Frontend UI Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/software-engineer-early-career-at-lensa-4344555650?position=55&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=VTPlWc1t%2Feg5kRPxqZYOQg%3D%3D",
+      "title": "Software Engineer - Early Career",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/react-developer-at-global-technical-talent-an-inc-5000-company-4344822956?position=56&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=4izBjvumNngHn9Pin8zqMw%3D%3D",
+      "title": "React Developer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.956Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/junior-software-engineer-at-raynmaker-4344235905?position=57&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=dJQrevoDaH7LdxTBe25B2Q%3D%3D",
+      "title": "Junior Software Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.957Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/robotics-front-end-software-engineer-ii-iii-at-mujin-4344922488?position=58&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=OH%2B11i%2BqyVFGkr7G5MLf%2Fg%3D%3D",
+      "title": "Robotics Front End Software Engineer II/III",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.957Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/early-career-software-engineer-2026-at-figma-4303833416?position=59&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=tfmMOP8L%2FsBP9Moww0JUtA%3D%3D",
+      "title": "Early Career, Software Engineer (2026)",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.957Z"
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/senior-frontend-engineer-at-professional-me-4344303296?position=60&pageNum=0&refId=0FvXbYaw3HEzjMsKrpjEpA%3D%3D&trackingId=zo8YN3d5%2BAM9LW9kOeqMJg%3D%3D",
+      "title": "Senior Frontend Engineer",
+      "channel": "LinkedIn",
+      "source": "LinkedIn",
+      "scrapedAt": "2025-12-18T20:22:33.957Z"
+    }
+  ],
+  "channelStats": {
+    "LinkedIn": 61
+  },
+  "totalJobs": 61,
+  "createdAt": "2025-12-18T20:23:08.550Z",
+  "lastUpdated": "2025-12-18T20:23:08.551Z"
+}
