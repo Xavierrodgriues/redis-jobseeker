@@ -1,106 +1,133 @@
-const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
 
 /**
- * Searches a specific job board with pagination to get at least 20 results
+ * Searches a specific job board with pagination
  * @param {Object} query - Query object with name, url, and extractor function
  * @param {string} processId - Process ID for logging
+ * @param {Object} browser - Puppeteer browser instance
  * @param {number} minResults - Minimum number of results to fetch (default: 20)
  * @returns {Promise<Array>} Array of job links from this source
  */
-async function searchJobBoard(query, processId, minResults = 20) {
+async function searchJobBoard(query, processId, browser, minResults = 20) {
   const jobLinks = [];
-  const maxPages = 5; // Maximum pages to search per platform
-  let page = 0;
+  const maxPages = 3; // Reduced for performance
+  let pageNum = 0;
+  let page = null;
 
   try {
-    while (jobLinks.length < minResults && page < maxPages) {
+    page = await browser.newPage();
+    // Optimize page loading
+    await page.setViewport({ width: 1366, height: 768 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // Request interception to block non-essential resources
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    while (jobLinks.length < minResults && pageNum < maxPages) {
       try {
-        const url = query.getUrl(page);
-        console.log(`[Process ${processId}] Searching ${query.name} (page ${page + 1}) for: ${query.role} in ${query.location}`);
+        const url = query.getUrl(pageNum);
+        console.log(`[Process ${processId}] Searching ${query.name} (page ${pageNum + 1})`);
 
-        const response = await axios.get(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-          },
-          timeout: 15000
-        });
+        // Navigate
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-        const $ = cheerio.load(response.data);
+        // Wait for some potential dynamic content. 
+        // 2s is generic, could be smarter but good enough for mvp
+        await new Promise(r => setTimeout(r, 3000));
+
+        const content = await page.content();
+        const $ = cheerio.load(content);
+
         const pageLinks = query.extractor($, query.name);
 
         if (pageLinks.length === 0) {
-          console.log(`[Process ${processId}] No more results found on ${query.name} page ${page + 1}`);
+          console.log(`[Process ${processId}] No more results found on ${query.name} page ${pageNum + 1}`);
+          // Check for error pages
+          const title = $('title').text();
+          if (title.includes('403') || title.includes('Forbidden') || title.includes('Access Denied') || title.includes('Security')) {
+            console.log(`[Process ${processId}] ${query.name} Access Denied`);
+          }
           break;
         }
 
         jobLinks.push(...pageLinks);
-        console.log(`[Process ${processId}] Found ${pageLinks.length} jobs on ${query.name} page ${page + 1}. Total: ${jobLinks.length}`);
+        console.log(`[Process ${processId}] Found ${pageLinks.length} jobs on ${query.name} page ${pageNum + 1}. Total: ${jobLinks.length}`);
 
-        // If we got results but not enough, try next page
         if (jobLinks.length < minResults) {
-          page++;
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Delay between pages
+          pageNum++;
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
-        console.error(`[Process ${processId}] Error on ${query.name} page ${page + 1}:`, error.message);
+        console.error(`[Process ${processId}] Error on ${query.name} page ${pageNum + 1}:`, error.message);
         break;
       }
     }
 
-    // Return all collected results (we try to get at least minResults, but return what we have)
-    console.log(`[Process ${processId}] ${query.name}: Collected ${jobLinks.length} jobs`);
     return jobLinks;
 
   } catch (error) {
     console.error(`[Process ${processId}] Error searching ${query.name}:`, error.message);
-    return jobLinks; // Return whatever we collected
+    return jobLinks;
+  } finally {
+    if (page) {
+      try { await page.close(); } catch (e) { }
+    }
   }
 }
 
 /**
  * Searches for job links online based on job criteria from multiple platforms
  * @param {Object} jobData - Job search parameters
- * @param {string} jobData.role - Job role/title
- * @param {string} jobData.location - Job location
- * @param {string} jobData.experience - Experience level
  * @param {string} processId - Process ID for file naming
  * @returns {Promise<Object>} Object with channel-wise job links and statistics
  */
 async function searchJobLinks(jobData, processId) {
+  // Always force United States logic from previous step
+  jobData.location = "United States";
+
   const { role, location, experience } = jobData;
   const allJobLinks = {};
   const channelStats = {};
+  let browser = null;
 
   try {
-    // Define all job board search configurations
+    // Launch browser
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+
     const jobBoards = [
       {
         name: 'LinkedIn',
-        role: role,
-        location: location,
         getUrl: (page) => {
           const start = page * 25;
-          return `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&start=${start}&f_TPR=r86400`; // Last 24 hours
+          return `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&start=${start}&f_TPR=r86400`;
         },
         extractor: ($, source) => {
           const links = [];
           $('a.base-card__full-link, a.job-card-list__title').each((i, elem) => {
             const href = $(elem).attr('href');
             if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.linkedin.com${href}`;
               links.push({
-                url: fullUrl,
-                title: $(elem).find('span.sr-only, h3.base-search-card__title').text().trim() || $(elem).text().trim(),
+                url: href.startsWith('http') ? href : `https://www.linkedin.com${href}`,
+                title: $(elem).text().trim(),
                 channel: source,
-                source: source, // Backward compatibility
+                source: source,
                 scrapedAt: new Date().toISOString()
               });
             }
@@ -108,51 +135,24 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      {
-        name: 'Naukri',
-        role: role,
-        location: location,
-        getUrl: (page) => {
-          const pageNum = page + 1;
-          return `https://www.naukri.com/${encodeURIComponent(role.toLowerCase().replace(/\s+/g, '-'))}-jobs-in-${encodeURIComponent(location.toLowerCase().replace(/\s+/g, '-'))}?k=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&experience=${encodeURIComponent(experience)}&page=${pageNum}`;
-        },
-        extractor: ($, source) => {
-          const links = [];
-          $('a.title, a[data-job-id]').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.naukri.com${href}`;
-              links.push({
-                url: fullUrl,
-                title: $(elem).text().trim() || $(elem).find('span').text().trim(),
-                channel: source,
-                source: source, // Backward compatibility
-                scrapedAt: new Date().toISOString()
-              });
-            }
-          });
-          return links;
-        }
-      },
+      // Removed Naukri (low relevance for pure US-only requests and problematic with bots)
       {
         name: 'Indeed',
-        role: role,
-        location: location,
         getUrl: (page) => {
           const start = page * 10;
-          return `https://www.indeed.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fromage=1&start=${start}`; // Last 24 hours
+          return `https://www.indeed.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fromage=1&start=${start}`;
         },
         extractor: ($, source) => {
           const links = [];
-          $('a[data-jk], a[href*="/viewjob"]').each((i, elem) => {
+          // Updated selectors for Indeed
+          $('a[id^="job_"], a.jcs-JobTitle').each((i, elem) => {
             const href = $(elem).attr('href');
             if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.indeed.com${href}`;
               links.push({
-                url: fullUrl,
-                title: $(elem).find('h2.jobTitle, span[title]').text().trim() || $(elem).text().trim(),
+                url: href.startsWith('http') ? href : `https://www.indeed.com${href}`,
+                title: $(elem).find('span').text().trim() || $(elem).text().trim(),
                 channel: source,
-                source: source, // Backward compatibility
+                source: source,
                 scrapedAt: new Date().toISOString()
               });
             }
@@ -162,75 +162,21 @@ async function searchJobLinks(jobData, processId) {
       },
       {
         name: 'Glassdoor',
-        role: role,
-        location: location,
         getUrl: (page) => {
-          const pageNum = page + 1;
-          return `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=C&locId=${encodeURIComponent(location)}&fromAge=1&page=${pageNum}`; // Last 24 hours
+          // Keep page=1 for subsequent pages if logic differs, but glassdoor typically uses page param
+          // Note: Glassdoor often redirects login. Puppeteer can sometimes see listing anyway.
+          return `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=C&locId=1&locKeyword=${encodeURIComponent(location)}&fromAge=1`;
         },
         extractor: ($, source) => {
           const links = [];
-          $('a[data-test="job-link"], a.jobLink').each((i, elem) => {
+          $('a.jobLink, a[data-test="job-link"]').each((i, elem) => {
             const href = $(elem).attr('href');
             if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.glassdoor.com${href}`;
               links.push({
-                url: fullUrl,
-                title: $(elem).find('div[data-test="job-title"], a[data-test="job-title"]').text().trim() || $(elem).text().trim(),
-                channel: source,
-                source: source, // Backward compatibility
-                scrapedAt: new Date().toISOString()
-              });
-            }
-          });
-          return links;
-        }
-      },
-      {
-        name: 'Monster',
-        role: role,
-        location: location,
-        getUrl: (page) => {
-          const pageNum = page + 1;
-          return `https://www.monster.com/jobs/search?q=${encodeURIComponent(role)}&where=${encodeURIComponent(location)}&page=${pageNum}&postedDate=1`; // Last 24 hours
-        },
-        extractor: ($, source) => {
-          const links = [];
-          $('a[data-test-id="svx-job-title"], a.sc-fzqBZW').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.monster.com${href}`;
-              links.push({
-                url: fullUrl,
+                url: href.startsWith('http') ? href : `https://www.glassdoor.com${href}`,
                 title: $(elem).text().trim(),
                 channel: source,
-                source: source, // Backward compatibility
-                scrapedAt: new Date().toISOString()
-              });
-            }
-          });
-          return links;
-        }
-      },
-      {
-        name: 'ZipRecruiter',
-        role: role,
-        location: location,
-        getUrl: (page) => {
-          const pageNum = page + 1;
-          return `https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&page=${pageNum}&days=1`; // Last 24 hours
-        },
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job_link, a[data-testid="job-title"]').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.ziprecruiter.com${href}`;
-              links.push({
-                url: fullUrl,
-                title: $(elem).text().trim() || $(elem).find('h2, h3').text().trim(),
-                channel: source,
-                source: source, // Backward compatibility
+                source: source,
                 scrapedAt: new Date().toISOString()
               });
             }
@@ -240,49 +186,20 @@ async function searchJobLinks(jobData, processId) {
       },
       {
         name: 'SimplyHired',
-        role: role,
-        location: location,
         getUrl: (page) => {
           const pageNum = page + 1;
-          return `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fdb=1&page=${pageNum}`; // Last 24 hours
+          return `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fdb=1&curr_page=${pageNum}`;
         },
         extractor: ($, source) => {
           const links = [];
-          $('a[data-testid="job-title"], a.SerpJob-link').each((i, elem) => {
+          $('a.chakra-button, a.SerpJob-link').each((i, elem) => {
             const href = $(elem).attr('href');
-            if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.simplyhired.com${href}`;
+            if (href && (href.includes('/job/') || href.includes('rc/clk'))) {
               links.push({
-                url: fullUrl,
+                url: href.startsWith('http') ? href : `https://www.simplyhired.com${href}`,
                 title: $(elem).text().trim(),
                 channel: source,
-                source: source, // Backward compatibility
-                scrapedAt: new Date().toISOString()
-              });
-            }
-          });
-          return links;
-        }
-      },
-      {
-        name: 'CareerBuilder',
-        role: role,
-        location: location,
-        getUrl: (page) => {
-          const pageNum = page + 1;
-          return `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&posted=1&page=${pageNum}`; // Last 24 hours
-        },
-        extractor: ($, source) => {
-          const links = [];
-          $('a.data-results-content, a[data-testid="job-title"]').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) {
-              const fullUrl = href.startsWith('http') ? href : `https://www.careerbuilder.com${href}`;
-              links.push({
-                url: fullUrl,
-                title: $(elem).text().trim() || $(elem).find('h2, h3').text().trim(),
-                channel: source,
-                source: source, // Backward compatibility
+                source: source,
                 scrapedAt: new Date().toISOString()
               });
             }
@@ -292,75 +209,27 @@ async function searchJobLinks(jobData, processId) {
       }
     ];
 
-    // Search each job board with minimum 20 results requirement
     for (const board of jobBoards) {
       try {
-        const boardResults = await searchJobBoard(board, processId, 20);
+        const boardResults = await searchJobBoard(board, processId, browser, 20);
         if (boardResults.length > 0) {
           allJobLinks[board.name] = boardResults;
           channelStats[board.name] = boardResults.length;
         }
-        // Add delay between different platforms
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Small delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`[Process ${processId}] Error searching ${board.name}:`, error.message);
         channelStats[board.name] = 0;
       }
     }
 
-    // Also try Google Jobs search for additional results
-    try {
-      console.log(`[Process ${processId}] Searching Google Jobs for: ${role} in ${location}`);
-      const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`${role} jobs ${location} ${experience}`)}&tbm=job&tbs=qdr:d`; // Last 24 hours
-      const response = await axios.get(googleSearchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        },
-        timeout: 15000
-      });
-
-      const $ = cheerio.load(response.data);
-      const googleLinks = [];
-      $('a[href*="/url?q="], a[data-ved]').each((i, elem) => {
-        const href = $(elem).attr('href');
-        if (href) {
-          let jobUrl = href;
-          if (href.includes('/url?q=')) {
-            const urlMatch = href.match(/\/url\?q=([^&]+)/);
-            if (urlMatch && urlMatch[1]) {
-              jobUrl = decodeURIComponent(urlMatch[1]);
-            }
-          }
-          // Filter out non-job URLs
-          if (jobUrl && (jobUrl.includes('job') || jobUrl.includes('career') || jobUrl.includes('hiring') || jobUrl.includes('position'))) {
-            googleLinks.push({
-              url: jobUrl,
-              title: $(elem).text().trim() || $(elem).find('h3, h4').text().trim(),
-              channel: 'Google Jobs',
-              source: 'Google Jobs', // Backward compatibility
-              scrapedAt: new Date().toISOString()
-            });
-          }
-        }
-      });
-
-      if (googleLinks.length > 0) {
-        allJobLinks['Google Jobs'] = googleLinks.slice(0, 20); // Limit to 20
-        channelStats['Google Jobs'] = Math.min(googleLinks.length, 20);
-      }
-    } catch (error) {
-      console.error(`[Process ${processId}] Error with Google search:`, error.message);
-      channelStats['Google Jobs'] = 0;
-    }
-
-    // Combine all results and remove duplicates
+    // Combine results
     const allLinks = [];
     const seenUrls = new Set();
 
     for (const [channel, links] of Object.entries(allJobLinks)) {
       for (const link of links) {
-        // Normalize URL for duplicate detection
         const normalizedUrl = link.url.split('?')[0].toLowerCase();
         if (!seenUrls.has(normalizedUrl)) {
           seenUrls.add(normalizedUrl);
@@ -369,7 +238,6 @@ async function searchJobLinks(jobData, processId) {
       }
     }
 
-    // Log statistics
     console.log(`[Process ${processId}] Job search completed:`);
     for (const [channel, count] of Object.entries(channelStats)) {
       console.log(`  ${channel}: ${count} jobs`);
@@ -384,11 +252,11 @@ async function searchJobLinks(jobData, processId) {
 
   } catch (error) {
     console.error(`[Process ${processId}] Error in searchJobLinks:`, error.message);
-    return {
-      jobs: [],
-      channelStats: {},
-      totalJobs: 0
-    };
+    return { jobs: [], channelStats: {}, totalJobs: 0 };
+  } finally {
+    if (browser) {
+      try { await browser.close(); } catch (e) { }
+    }
   }
 }
 
@@ -419,7 +287,6 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
     lastUpdated: new Date().toISOString()
   };
 
-  // Read existing file if it exists
   if (fs.existsSync(filePath)) {
     try {
       const fileContent = fs.readFileSync(filePath, 'utf8');
@@ -430,9 +297,7 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
     }
   }
 
-  // Append new job links (avoid duplicates)
   const existingUrls = new Set(existingData.jobs.map(job => {
-    // Normalize URL for duplicate detection
     return job.url ? job.url.split('?')[0].toLowerCase() : '';
   }));
 
@@ -444,9 +309,6 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
   existingData.jobs.push(...newJobs);
 
   // Update channel statistics
-  existingData.channelStats = searchResults.channelStats || {};
-
-  // Calculate channel-wise counts from actual jobs
   const channelCounts = {};
   existingData.jobs.forEach(job => {
     const channel = job.channel || job.source || 'Unknown';
@@ -456,30 +318,19 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
 
   existingData.totalJobs = existingData.jobs.length;
 
-  // Write to file
   try {
     fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2), 'utf8');
     console.log(`[Process ${processId}] Appended ${newJobs.length} new job links to ${fileName}. Total: ${existingData.totalJobs}`);
-    console.log(`[Process ${processId}] Channel breakdown:`, existingData.channelStats);
   } catch (error) {
     console.error(`[Process ${processId}] Error writing to file:`, error.message);
-    throw error;
   }
 }
 
-/**
- * Main function to search and save job links
- * @param {Object} jobData - Job search parameters
- * @param {string} processId - Process ID for file naming
- * @returns {Promise<void>}
- */
 async function searchAndSaveJobLinks(jobData, processId) {
   try {
-    // Force location to United States
     jobData.location = "United States";
     console.log(`[Process ${processId}] Starting job search for:`, jobData);
 
-    // Search for job links from multiple platforms
     const searchResults = await searchJobLinks(jobData, processId);
 
     if (searchResults.jobs.length === 0) {
@@ -487,14 +338,11 @@ async function searchAndSaveJobLinks(jobData, processId) {
       return;
     }
 
-    // Append to JSON file
     await appendJobLinksToFile(searchResults, processId, jobData);
 
     console.log(`[Process ${processId}] Job search completed successfully`);
-    console.log(`[Process ${processId}] Summary: ${searchResults.totalJobs} total jobs from ${Object.keys(searchResults.channelStats).length} channels`);
   } catch (error) {
     console.error(`[Process ${processId}] Error in searchAndSaveJobLinks:`, error.message);
-    throw error;
   }
 }
 
