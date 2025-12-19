@@ -30,29 +30,12 @@ app.use(express.json());
 async function seedData() {
   const jobData = [
     {
-      role: 'Software Engineer',
+      role: 'Governance Risk and Compliance',
       userId: '123',
       experience: '1-3 years',
       location: 'United States'
     },
-    {
-      role: 'Frontend Engineer',
-      userId: '123',
-      experience: '1-3 years',
-      location: 'United States'
-    },
-    {
-      role: 'Backend Engineer',
-      userId: '123',
-      experience: '1-3 years',
-      location: 'United States'
-    },
-    {
-      role: 'Full Stack Engineer',
-      userId: '123',
-      experience: '1-3 years',
-      location: 'United States'
-    }
+    
   ]
 
   await redisClient.del('link-request-queue');

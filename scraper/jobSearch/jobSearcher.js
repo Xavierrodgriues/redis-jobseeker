@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const xlsx = require('xlsx');
 
 puppeteer.use(StealthPlugin());
 
@@ -261,43 +262,36 @@ async function searchJobLinks(jobData, processId) {
 }
 
 /**
- * Appends job links to a JSON file named with process_id
+ * Appends job links to an Excel file named with process_id
  * @param {Object} searchResults - Object containing jobs array, channelStats, and totalJobs
  * @param {string} processId - Process ID for file naming
- * @param {Object} jobData - Original job search data
+ * @param {Object} jobData - Original job search data (optional for this context but kept for signature)
  * @returns {Promise<void>}
  */
-async function appendJobLinksToFile(searchResults, processId, jobData) {
-  const fileName = `${processId}_jobs.json`;
-  const filePath = path.join(__dirname, '..', 'data', fileName);
+async function appendJobLinksToExcel(searchResults, processId, jobData) {
+  const fileName = `${processId}_jobs.xlsx`;
+  const outputDir = path.join(__dirname, '..', 'output');
+  const filePath = path.join(outputDir, fileName);
 
-  // Create data directory if it doesn't exist
-  const dataDir = path.dirname(filePath);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  // Create output directory if it doesn't exist
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  let existingData = {
-    processId: processId,
-    searchCriteria: jobData,
-    jobs: [],
-    channelStats: {},
-    totalJobs: 0,
-    createdAt: new Date().toISOString(),
-    lastUpdated: new Date().toISOString()
-  };
+  let existingJobs = [];
 
   if (fs.existsSync(filePath)) {
     try {
-      const fileContent = fs.readFileSync(filePath, 'utf8');
-      existingData = JSON.parse(fileContent);
-      existingData.lastUpdated = new Date().toISOString();
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      existingJobs = xlsx.utils.sheet_to_json(worksheet);
     } catch (error) {
-      console.error(`[Process ${processId}] Error reading existing file:`, error.message);
+      console.error(`[Process ${processId}] Error reading existing Excel file:`, error.message);
     }
   }
 
-  const existingUrls = new Set(existingData.jobs.map(job => {
+  const existingUrls = new Set(existingJobs.map(job => {
     return job.url ? job.url.split('?')[0].toLowerCase() : '';
   }));
 
@@ -306,23 +300,24 @@ async function appendJobLinksToFile(searchResults, processId, jobData) {
     return !existingUrls.has(normalizedUrl);
   });
 
-  existingData.jobs.push(...newJobs);
+  if (newJobs.length === 0) {
+    console.log(`[Process ${processId}] No new unique jobs to append.`);
+    return;
+  }
 
-  // Update channel statistics
-  const channelCounts = {};
-  existingData.jobs.forEach(job => {
-    const channel = job.channel || job.source || 'Unknown';
-    channelCounts[channel] = (channelCounts[channel] || 0) + 1;
-  });
-  existingData.channelStats = channelCounts;
+  // Combine and write
+  const allJobs = [...existingJobs, ...newJobs];
 
-  existingData.totalJobs = existingData.jobs.length;
+  // Create new workbook
+  const newWorkbook = xlsx.utils.book_new();
+  const newWorksheet = xlsx.utils.json_to_sheet(allJobs);
+  xlsx.utils.book_append_sheet(newWorkbook, newWorksheet, "Jobs");
 
   try {
-    fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2), 'utf8');
-    console.log(`[Process ${processId}] Appended ${newJobs.length} new job links to ${fileName}. Total: ${existingData.totalJobs}`);
+    xlsx.writeFile(newWorkbook, filePath);
+    console.log(`[Process ${processId}] Appended ${newJobs.length} new job links to ${fileName}. Total: ${allJobs.length}`);
   } catch (error) {
-    console.error(`[Process ${processId}] Error writing to file:`, error.message);
+    console.error(`[Process ${processId}] Error writing to Excel file:`, error.message);
   }
 }
 
@@ -338,7 +333,7 @@ async function searchAndSaveJobLinks(jobData, processId) {
       return;
     }
 
-    await appendJobLinksToFile(searchResults, processId, jobData);
+    await appendJobLinksToExcel(searchResults, processId, jobData);
 
     console.log(`[Process ${processId}] Job search completed successfully`);
   } catch (error) {
@@ -348,6 +343,7 @@ async function searchAndSaveJobLinks(jobData, processId) {
 
 module.exports = {
   searchJobLinks,
-  appendJobLinksToFile,
+  appendJobLinksToFile: appendJobLinksToExcel, // Maintaining alias for compatibility if needed, though implementing new logic
+  appendJobLinksToExcel,
   searchAndSaveJobLinks
 };
