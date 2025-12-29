@@ -315,6 +315,104 @@ async function searchJobLinks(jobData, processId) {
           });
           return links;
         }
+      },
+      {
+        name: 'Jooble',
+        getUrl: (page) => {
+          // Jooble doesn't use simple page numbers in the same way, but let's try p=
+          const pageNum = page + 1;
+          return `https://jooble.org/SearchResult?ukw=${encodeURIComponent(role)}&rg=${encodeURIComponent(location)}&p=${pageNum}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('h2 a, a.JobCard_link__3N-l-').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://jooble.org${href}`,
+                title: $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
+      {
+        name: 'JobSora',
+        getUrl: (page) => {
+          const pageNum = page + 1;
+          return `https://us.jobsora.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&page=${pageNum}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a.c-job-item__title').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://us.jobsora.com${href}`,
+                title: $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
+      {
+        name: 'Remotive',
+        getUrl: (page) => {
+          // Remotive is a single page list often, or uses different structure.
+          // But let's try their search URL.
+          return `https://remotive.com/remote-jobs/search?query=${encodeURIComponent(role)}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a.job-card-title').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://remotive.com${href}`,
+                title: $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
+      {
+        name: 'WeWorkRemotely',
+        getUrl: (page) => {
+          return `https://weworkremotely.com/remote-jobs/search?term=${encodeURIComponent(role)}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('section.jobs li a').each((i, elem) => {
+            // WWR often wraps the whole card in an anchor or has multiple anchors.
+            // We look for the one linking to the job details (not the company)
+            const href = $(elem).attr('href');
+            if (href && href.startsWith('/remote-jobs/')) {
+              const title = $(elem).find('.title').text().trim() || $(elem).text().trim();
+              if (title) {
+                links.push({
+                  url: `https://weworkremotely.com${href}`,
+                  title: title,
+                  channel: source,
+                  source: source,
+                  scrapedAt: new Date().toISOString()
+                });
+              }
+            }
+          });
+          return links;
+        }
       }
     ];
 
