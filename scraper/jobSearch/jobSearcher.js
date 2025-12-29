@@ -223,6 +223,98 @@ async function searchJobLinks(jobData, processId) {
           });
           return links;
         }
+      },
+      {
+        name: 'Monster',
+        getUrl: (page) => {
+          const pageNum = page + 1;
+          return `https://www.monster.com/jobs/search?q=${encodeURIComponent(role)}&where=${encodeURIComponent(location)}&page=${pageNum}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a[data-testid="job-card-link"], a.job-card-style__JobCardLink-sc-1mbmxes-0').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.monster.com${href}`,
+                title: $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
+      {
+        name: 'Dice',
+        getUrl: (page) => {
+          const pageNum = page + 1;
+          return `https://www.dice.com/jobs?q=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&p=${pageNum}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a.card-title-link').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.dice.com${href}`,
+                title: $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
+      {
+        name: 'Talent.com',
+        getUrl: (page) => {
+          const start = page * 10;
+          return `https://www.talent.com/jobs?k=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a.link-job-wrap').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.talent.com${href}`,
+                title: $(elem).find('h2').text().trim() || $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
+      {
+        name: 'CareerJet',
+        getUrl: (page) => {
+          const pageNum = page + 1;
+          return `https://www.careerjet.com/search/jobs?s=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&p=${pageNum}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a.job-link').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.careerjet.com${href}`,
+                title: $(elem).find('h2').text().trim() || $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
       }
     ];
 
