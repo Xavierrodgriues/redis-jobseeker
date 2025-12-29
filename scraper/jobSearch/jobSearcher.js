@@ -1,9 +1,7 @@
 const cheerio = require('cheerio');
-const fs = require('fs');
-const path = require('path');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const xlsx = require('xlsx');
+const { getDb } = require('../mongo');
 
 puppeteer.use(StealthPlugin());
 
@@ -17,7 +15,7 @@ puppeteer.use(StealthPlugin());
  */
 async function searchJobBoard(query, processId, browser, minResults = 20) {
   const jobLinks = [];
-  const maxPages = 3; // Reduced for performance
+  const maxPages = 3;
   let pageNum = 0;
   let page = null;
 
@@ -47,7 +45,6 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
         // Wait for some potential dynamic content. 
-        // 2s is generic, could be smarter but good enough for mvp
         await new Promise(r => setTimeout(r, 3000));
 
         const content = await page.content();
@@ -100,7 +97,7 @@ async function searchJobLinks(jobData, processId) {
   // Always force United States logic from previous step
   jobData.location = "United States";
 
-  const { role, location, experience } = jobData;
+  const { role, location } = jobData;
   const allJobLinks = {};
   const channelStats = {};
   let browser = null;
@@ -114,18 +111,18 @@ async function searchJobLinks(jobData, processId) {
 
     const jobBoards = [
       {
-        name: 'LinkedIn',
+        name: 'ZipRecruiter',
         getUrl: (page) => {
-          const start = page * 25;
-          return `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&start=${start}&f_TPR=r86400`;
+          const pageNum = page + 1;
+          return `https://www.ziprecruiter.com/candidate/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&page=${pageNum}`;
         },
         extractor: ($, source) => {
           const links = [];
-          $('a.base-card__full-link, a.job-card-list__title').each((i, elem) => {
+          $('a.job_link, a.job_title').each((i, elem) => {
             const href = $(elem).attr('href');
             if (href) {
               links.push({
-                url: href.startsWith('http') ? href : `https://www.linkedin.com${href}`,
+                url: href.startsWith('http') ? href : `https://www.ziprecruiter.com${href}`,
                 title: $(elem).text().trim(),
                 channel: source,
                 source: source,
@@ -136,7 +133,29 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // Removed Naukri (low relevance for pure US-only requests and problematic with bots)
+      {
+        name: 'CareerBuilder',
+        getUrl: (page) => {
+          const pageNum = page + 1;
+          return `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&page_number=${pageNum}`;
+        },
+        extractor: ($, source) => {
+          const links = [];
+          $('a.data-results-content, a.job-listing-item, a[data-testid="job-card-title"]').each((i, elem) => {
+            const href = $(elem).attr('href');
+            if (href) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.careerbuilder.com${href}`,
+                title: $(elem).find('h3, .title').text().trim() || $(elem).text().trim(),
+                channel: source,
+                source: source,
+                scrapedAt: new Date().toISOString()
+              });
+            }
+          });
+          return links;
+        }
+      },
       {
         name: 'Indeed',
         getUrl: (page) => {
@@ -145,7 +164,6 @@ async function searchJobLinks(jobData, processId) {
         },
         extractor: ($, source) => {
           const links = [];
-          // Updated selectors for Indeed
           $('a[id^="job_"], a.jcs-JobTitle').each((i, elem) => {
             const href = $(elem).attr('href');
             if (href) {
@@ -164,8 +182,6 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'Glassdoor',
         getUrl: (page) => {
-          // Keep page=1 for subsequent pages if logic differs, but glassdoor typically uses page param
-          // Note: Glassdoor often redirects login. Puppeteer can sometimes see listing anyway.
           return `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=C&locId=1&locKeyword=${encodeURIComponent(location)}&fromAge=1`;
         },
         extractor: ($, source) => {
@@ -217,7 +233,6 @@ async function searchJobLinks(jobData, processId) {
           allJobLinks[board.name] = boardResults;
           channelStats[board.name] = boardResults.length;
         }
-        // Small delay
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`[Process ${processId}] Error searching ${board.name}:`, error.message);
@@ -262,62 +277,51 @@ async function searchJobLinks(jobData, processId) {
 }
 
 /**
- * Appends job links to an Excel file named with process_id
- * @param {Object} searchResults - Object containing jobs array, channelStats, and totalJobs
- * @param {string} processId - Process ID for file naming
- * @param {Object} jobData - Original job search data (optional for this context but kept for signature)
- * @returns {Promise<void>}
+ * Saves job links to MongoDB
+ * @param {Array} jobs - Array of job objects
+ * @param {string} processId - Process ID for logging
+ * @param {Object} jobData - Original job search parameters (role, experience, etc.)
  */
-async function appendJobLinksToExcel(searchResults, processId, jobData) {
-  const fileName = `${processId}_jobs.xlsx`;
-  const outputDir = path.join(__dirname, '..', 'output');
-  const filePath = path.join(outputDir, fileName);
-
-  // Create output directory if it doesn't exist
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  let existingJobs = [];
-
-  if (fs.existsSync(filePath)) {
-    try {
-      const workbook = xlsx.readFile(filePath);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      existingJobs = xlsx.utils.sheet_to_json(worksheet);
-    } catch (error) {
-      console.error(`[Process ${processId}] Error reading existing Excel file:`, error.message);
-    }
-  }
-
-  const existingUrls = new Set(existingJobs.map(job => {
-    return job.url ? job.url.split('?')[0].toLowerCase() : '';
-  }));
-
-  const newJobs = searchResults.jobs.filter(link => {
-    const normalizedUrl = link.url ? link.url.split('?')[0].toLowerCase() : '';
-    return !existingUrls.has(normalizedUrl);
-  });
-
-  if (newJobs.length === 0) {
-    console.log(`[Process ${processId}] No new unique jobs to append.`);
-    return;
-  }
-
-  // Combine and write
-  const allJobs = [...existingJobs, ...newJobs];
-
-  // Create new workbook
-  const newWorkbook = xlsx.utils.book_new();
-  const newWorksheet = xlsx.utils.json_to_sheet(allJobs);
-  xlsx.utils.book_append_sheet(newWorkbook, newWorksheet, "Jobs");
+async function saveJobsToMongo(jobs, processId, jobData) {
+  if (!jobs || jobs.length === 0) return;
 
   try {
-    xlsx.writeFile(newWorkbook, filePath);
-    console.log(`[Process ${processId}] Appended ${newJobs.length} new job links to ${fileName}. Total: ${allJobs.length}`);
+    const db = getDb();
+    const collection = db.collection('job_links');
+
+    let insertedCount = 0;
+
+    // Process each job independently for upsert
+    const ops = jobs.map(job => {
+      const applyUrl = job.url; // Use original URL
+
+      const doc = {
+        title: job.title || "Unknown Title",
+        company: "Unknown", // Current scraper doesn't extract company name robustly
+        role: jobData.role || job.title,
+        experience: jobData.experience || "all",
+        country: "United States",
+        apply_url: applyUrl,
+        source: job.source,
+        scrapedAt: new Date()
+      };
+
+      return {
+        updateOne: {
+          filter: { apply_url: applyUrl },
+          update: { $set: doc },
+          upsert: true
+        }
+      };
+    });
+
+    if (ops.length > 0) {
+      const result = await collection.bulkWrite(ops);
+      console.log(`[Process ${processId}] MongoDB Bulk Write: matched=${result.matchedCount}, modified=${result.modifiedCount}, upserted=${result.upsertedCount}`);
+    }
+
   } catch (error) {
-    console.error(`[Process ${processId}] Error writing to Excel file:`, error.message);
+    console.error(`[Process ${processId}] Error saving to MongoDB:`, error.message);
   }
 }
 
@@ -333,9 +337,9 @@ async function searchAndSaveJobLinks(jobData, processId) {
       return;
     }
 
-    await appendJobLinksToExcel(searchResults, processId, jobData);
+    await saveJobsToMongo(searchResults.jobs, processId, jobData);
 
-    console.log(`[Process ${processId}] Job search completed successfully`);
+    console.log(`[Process ${processId}] Job search and save completed successfully`);
   } catch (error) {
     console.error(`[Process ${processId}] Error in searchAndSaveJobLinks:`, error.message);
   }
@@ -343,7 +347,5 @@ async function searchAndSaveJobLinks(jobData, processId) {
 
 module.exports = {
   searchJobLinks,
-  appendJobLinksToFile: appendJobLinksToExcel, // Maintaining alias for compatibility if needed, though implementing new logic
-  appendJobLinksToExcel,
   searchAndSaveJobLinks
 };

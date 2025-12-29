@@ -21,30 +21,49 @@ redisClient.on('error', (err) => {
 
 // Connect to Redis
 
+const path = require('path');
+const { connectToMongo, getDb } = require('./scraper/mongo');
+
+// Connect to MongoDB
+connectToMongo().catch(console.error);
 
 // Middleware
 app.use(express.json());
+const cors = require('cors');
+app.use(cors());
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Test route to verify Redis connection
+// Search API
+app.get('/api/v1/search', async (req, res) => {
+  try {
+    const { role, experience } = req.query;
+    const db = getDb();
+    const collection = db.collection('job_links');
 
-async function seedData() {
-  const jobData = [
-    {
-      role: 'Governance Risk and Compliance',
-      userId: '123',
-      experience: '1-3 years',
-      location: 'United States'
-    },
-    
-  ]
+    const query = {};
 
-  await redisClient.del('link-request-queue');
-  for (const job of jobData) {
-    await redisClient.lpush('link-request-queue', JSON.stringify(job));
+    if (role) {
+      // Case-insensitive regex search for role
+      query.role = { $regex: role, $options: 'i' };
+    }
+
+    if (experience) {
+      // For now, exact match or simple regex if needed. 
+      // Current scraper might save "all" or specific string.
+      // We'll broaden it to find partial matches if provided.
+      query.experience = { $regex: experience.split(' ')[0], $options: 'i' };
+    }
+
+    const jobs = await collection.find(query).sort({ scrapedAt: -1 }).limit(50).toArray();
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Failed to fetch jobs' });
   }
+});
 
-  console.log('Seed data added to Redis queue');
-}
+
 
 app.post('/api/v1/request-for-link', async (req, res) => {
   try {
@@ -71,8 +90,6 @@ app.post('/api/v1/request-for-link', async (req, res) => {
 
 app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  await seedData();
-  console.log('Seed data added to Redis queue');
 });
 
 // Graceful shutdown
