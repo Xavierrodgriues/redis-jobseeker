@@ -25,12 +25,26 @@ async function startWorker() {
   await connectToMongo();
   console.log(`[Worker PID: ${processId}, Instance: ${instanceId}] Worker started and ready to process jobs`);
 
+  let emptyCheckCount = 0;
+  const MAX_EMPTY_CHECKS = 3;
+
   while (true) {
     const job = await redisClient.rpop('link-request-queue');
     if (!job) {
+      emptyCheckCount++;
+      console.log(`[Worker PID: ${processId}, Instance: ${instanceId}] Queue empty. Checking again in 3s... (${emptyCheckCount}/${MAX_EMPTY_CHECKS})`);
+
+      if (emptyCheckCount >= MAX_EMPTY_CHECKS) {
+        console.log(`[Worker PID: ${processId}, Instance: ${instanceId}] Queue is empty after ${MAX_EMPTY_CHECKS} checks. Exiting worker.`);
+        break;
+      }
+
       await sleep(3000);
       continue;
     }
+
+    // Reset counter when a job is found
+    emptyCheckCount = 0;
 
     const jobData = JSON.parse(job);
     console.log(`[Worker PID: ${processId}, Instance: ${instanceId}] Processing job:`, jobData);
