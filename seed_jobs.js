@@ -16,11 +16,10 @@ redisClient.on('error', (err) => {
 async function seedData() {
     // Add more roles here as needed
     const jobRoles = [
-        'Frontend Developer',
-        'Backend Developer',
-        'Full Stack Developer',
+        'Software Engineer',
         'DevOps Engineer',
         'Data Scientist',
+        'Network Analyst',
         'Product Manager'
     ];
 
