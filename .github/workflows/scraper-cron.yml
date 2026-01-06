@@ -20,11 +20,13 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        working-directory: redis-parallel-scraper/scraper
-        run: npm install
+        run: |
+          cd scraper
+          npm install
 
       - name: Run scraper
-        working-directory: redis-parallel-scraper/scraper
+        run: |
+          cd scraper
+          node scraper.js
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
-        run: node scraper.js
