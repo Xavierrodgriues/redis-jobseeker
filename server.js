@@ -1,23 +1,22 @@
 const express = require('express');
-const redis = require('ioredis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Create Redis client
-const redisClient = redis.createClient({
-  host: 'localhost',
-  port: 6379
-});
+// const redisClient = redis.createClient({
+//   host: 'localhost',
+//   port: 6379
+// });
 
 // Handle Redis connection events
-redisClient.on('connect', () => {
-  console.log('Connected to Redis server');
-});
+// redisClient.on('connect', () => {
+//   console.log('Connected to Redis server');
+// });
 
-redisClient.on('error', (err) => {
-  console.error('Redis Client Error:', err);
-});
+// redisClient.on('error', (err) => {
+//   console.error('Redis Client Error:', err);
+// });
 
 // Connect to Redis
 
@@ -78,12 +77,12 @@ app.post('/api/v1/request-for-link', async (req, res) => {
     };
 
     // Add jobData to Redis queue
-    await redisClient.lpush('link-request-queue', JSON.stringify(jobData));
+    // await redisClient.lpush('link-request-queue', JSON.stringify(jobData));
 
     res.status(200).json({ message: 'Link requested successfully, will show you data on frontend in few minutes' });
   } catch (error) {
-    console.error('Error adding job to queue:', error);
-    res.status(500).json({ error: 'Failed to add job to queue', message: error.message });
+    console.error('Error handling request:', error);
+    res.status(500).json({ error: 'Failed to process request', message: error.message });
   }
 });
 
@@ -92,10 +91,4 @@ app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down gracefully...');
-  await redisClient.quit();
-  process.exit(0);
-});
 
