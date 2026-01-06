@@ -53,7 +53,7 @@ app.get('/api/v1/search', async (req, res) => {
       query.experience = { $regex: experience.split(' ')[0], $options: 'i' };
     }
 
-    const jobs = await collection.find(query).sort({ scrapedAt: -1 }).limit(50).toArray();
+    const jobs = await collection.find(query).sort({ scrapedAt: -1 }).toArray();
 
     res.json({ jobs });
   } catch (error) {
