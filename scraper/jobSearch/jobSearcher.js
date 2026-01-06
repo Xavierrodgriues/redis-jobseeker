@@ -6,8 +6,34 @@ const { getDb } = require('../mongo');
 puppeteer.use(StealthPlugin());
 
 /**
+ * Helper to auto-scroll the page to trigger lazy loading
+ */
+async function autoScroll(page) {
+  try {
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let totalHeight = 0;
+        const distance = 100;
+        const timer = setInterval(() => {
+          const scrollHeight = document.body.scrollHeight;
+          window.scrollBy(0, distance);
+          totalHeight += distance;
+
+          if (totalHeight >= scrollHeight - window.innerHeight) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 100);
+      });
+    });
+  } catch (err) {
+    // Ignore scrolling errors
+  }
+}
+
+/**
  * Searches a specific job board with pagination
- * @param {Object} query - Query object with name, url, and extractor function
+ * @param {Object} query - Query object with name, url, extractor, dynamic flag
  * @param {string} processId - Process ID for logging
  * @param {Object} browser - Puppeteer browser instance
  * @param {number} minResults - Minimum number of results to fetch (default: 20)
@@ -15,19 +41,25 @@ puppeteer.use(StealthPlugin());
  */
 async function searchJobBoard(query, processId, browser, minResults = 20) {
   const jobLinks = [];
-  const maxPages = 2; // Reduced pages per board since we have 44 boards!
+  const maxPages = 2; // Reduced pages per board since we have many boards
   let pageNum = 0;
   let page = null;
 
   try {
     page = await browser.newPage();
-    await page.setViewport({ width: 1366, height: 768 });
+    // Randomize viewport slightly
+    const width = 1366 + Math.floor(Math.random() * 100);
+    const height = 768 + Math.floor(Math.random() * 100);
+    await page.setViewport({ width, height });
+
+    // Set a realistic user agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
-      if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+      // Only block heavy media, keep scripts/xhr for dynamic sites
+      if (['image', 'font', 'media'].includes(resourceType)) {
         req.abort();
       } else {
         req.continue();
@@ -39,17 +71,51 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
         const url = query.getUrl(pageNum);
         console.log(`[Process ${processId}] Searching ${query.name} (page ${pageNum + 1})`);
 
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        // Reduced sleep for speed
-        await new Promise(r => setTimeout(r, 500));
+        // Navigate with better wait conditions
+        const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-        const content = await page.content();
-        const $ = cheerio.load(content);
+        // Check for bad status codes
+        if (response && response.status() >= 400) {
+          console.warn(`[Process ${processId}] Start ${query.name} returned status ${response.status()}`);
+        }
 
-        const pageLinks = query.extractor($, query.name);
+        // Wait for network idle to ensure dynamic content loads
+        try {
+          await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 });
+        } catch (e) {
+          // fast pages might not wait long, ignore timeout
+        }
 
-        if (pageLinks.length === 0) {
-          console.log(`[Process ${processId}] No results on ${query.name} page ${pageNum + 1}`);
+        // Scroll to trigger lazy loading
+        await autoScroll(page);
+
+        // Additional small pause specifically for dynamic sites
+        if (query.dynamic) {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+
+        let pageLinks = [];
+
+        if (query.dynamic) {
+          // Dynamic mode: Execute extractor in browser context
+          pageLinks = await page.evaluate(query.extractor, query.name);
+        } else {
+          // Static mode: Use Cheerio
+          const content = await page.content();
+          const $ = cheerio.load(content);
+          pageLinks = query.extractor($, query.name);
+        }
+
+        if (!pageLinks || pageLinks.length === 0) {
+          // Log debugging info for zero results
+          const title = await page.title();
+          const currentUrl = page.url();
+          console.log(`[Process ${processId}] No results on ${query.name} page ${pageNum + 1}. Title: "${title}", URL: "${currentUrl}"`);
+
+          // Check for potential captcha/login
+          if (title.toLowerCase().includes('captcha') || title.toLowerCase().includes('robot') || title.toLowerCase().includes('login')) {
+            console.warn(`[Process ${processId}] ${query.name} appears to be blocked or requiring login.`);
+          }
           break;
         }
 
@@ -89,18 +155,19 @@ async function searchJobLinks(jobData, processId) {
   try {
     browser = await puppeteer.launch({
       headless: "new",
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-features=IsolateOrigins,site-per-process']
     });
 
     const jobBoards = [
       // 1. FlexJobs
       {
         name: 'FlexJobs',
+        dynamic: false,
         getUrl: (page) => `https://www.flexjobs.com/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&page=${page + 1}`,
         extractor: ($, source) => {
           const links = [];
-          $('li.job a.job-link, a.job-title').each((i, el) => {
-            const href = $(el).attr('href');
+          $('li.job, a.job-link, a.job-title').each((i, el) => {
+            const href = $(el).attr('href') || $(el).find('a').attr('href');
             if (href) links.push({ url: href.startsWith('http') ? href : `https://www.flexjobs.com${href}`, title: $(el).text().trim(), source });
           });
           return links;
@@ -109,6 +176,7 @@ async function searchJobLinks(jobData, processId) {
       // 2. Remote.co
       {
         name: 'Remote.co',
+        dynamic: false,
         getUrl: (page) => `https://remote.co/remote-jobs/search/?search_keywords=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -122,6 +190,7 @@ async function searchJobLinks(jobData, processId) {
       // 3. We Work Remotely
       {
         name: 'WeWorkRemotely',
+        dynamic: false,
         getUrl: (page) => `https://weworkremotely.com/remote-jobs/search?term=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -135,6 +204,7 @@ async function searchJobLinks(jobData, processId) {
       // 4. JustRemote
       {
         name: 'JustRemote',
+        dynamic: false,
         getUrl: (page) => `https://justremote.co/remote-jobs?item=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -148,6 +218,7 @@ async function searchJobLinks(jobData, processId) {
       // 5. Remote OK
       {
         name: 'RemoteOK',
+        dynamic: false,
         getUrl: (page) => `https://remoteok.com/remote-${encodeURIComponent(role).replace(/%20/g, '-')}-jobs`,
         extractor: ($, source) => {
           const links = [];
@@ -162,6 +233,7 @@ async function searchJobLinks(jobData, processId) {
       // 6. Working Nomads
       {
         name: 'WorkingNomads',
+        dynamic: false,
         getUrl: (page) => `https://www.workingnomads.com/jobs?q=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -175,6 +247,7 @@ async function searchJobLinks(jobData, processId) {
       // 7. Remotive
       {
         name: 'Remotive',
+        dynamic: false,
         getUrl: (page) => `https://remotive.com/remote-jobs/search?query=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -188,10 +261,10 @@ async function searchJobLinks(jobData, processId) {
       // 8. AngelList (Wellfound)
       {
         name: 'AngelList',
+        dynamic: false,
         getUrl: (page) => `https://wellfound.com/jobs?q=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
-          // Specific selectors are tricky due to React/dynamic, try generic 'a' in list
           $('div[data-test="JobListItem"] a').each((i, el) => {
             const href = $(el).attr('href');
             if (href && href.includes('/jobs/')) links.push({ url: href.startsWith('http') ? href : `https://wellfound.com${href}`, title: $(el).text().trim(), source });
@@ -202,6 +275,7 @@ async function searchJobLinks(jobData, processId) {
       // 9. Pangian
       {
         name: 'Pangian',
+        dynamic: false,
         getUrl: (page) => `https://pangian.com/job-travel-remote/?search_keywords=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -215,6 +289,7 @@ async function searchJobLinks(jobData, processId) {
       // 10. Virtual Vocations
       {
         name: 'VirtualVocations',
+        dynamic: false,
         getUrl: (page) => `https://www.virtualvocations.com/jobs/q-${encodeURIComponent(role)}/page/${page + 1}`,
         extractor: ($, source) => {
           const links = [];
@@ -228,6 +303,7 @@ async function searchJobLinks(jobData, processId) {
       // 11. SkipTheDrive
       {
         name: 'SkipTheDrive',
+        dynamic: false,
         getUrl: (page) => `https://www.skipthedrive.com/page/${page + 1}/?s=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -241,6 +317,7 @@ async function searchJobLinks(jobData, processId) {
       // 12. Jobspresso
       {
         name: 'Jobspresso',
+        dynamic: false,
         getUrl: (page) => `https://jobspresso.co/?s=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -254,6 +331,7 @@ async function searchJobLinks(jobData, processId) {
       // 13. Hubstaff Talent
       {
         name: 'HubstaffTalent',
+        dynamic: false,
         getUrl: (page) => `https://talent.hubstaff.com/search/jobs?search=${encodeURIComponent(role)}&page=${page + 1}`,
         extractor: ($, source) => {
           const links = [];
@@ -264,38 +342,10 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 14. Outsourcely
-      /*
-      // 14. Outsourcely - DNS Broken
-      {
-        name: 'Outsourcely',
-        getUrl: (page) => `https://www.outsourcely.com/remote-jobs/${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.outsourcely.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 15. RemoteEurope - SSL Error
-      {
-        name: 'RemoteEurope',
-        getUrl: (page) => `https://remote-europe.com/search?search=${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://remote-europe.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      */
-      // 16. Crossover
+      // 14. Crossover
       {
         name: 'Crossover',
+        dynamic: false,
         getUrl: (page) => `https://www.crossover.com/jobs?q=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -306,9 +356,10 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 17. YC Work at a Startup
+      // 15. YC Work at a Startup
       {
         name: 'YCStartup',
+        dynamic: false,
         getUrl: (page) => `https://www.workatastartup.com/jobs?query=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -319,9 +370,10 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 18. PowerToFly
+      // 16. PowerToFly
       {
         name: 'PowerToFly',
+        dynamic: false,
         getUrl: (page) => `https://powertofly.com/jobs/?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}`,
         extractor: ($, source) => {
           const links = [];
@@ -332,22 +384,10 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 19. Authentic Jobs
-      {
-        name: 'AuthenticJobs',
-        getUrl: (page) => `https://authenticjobs.com/?s=${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.project-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 20. RemoteHub
+      // 17. RemoteHub
       {
         name: 'RemoteHub',
+        dynamic: false,
         getUrl: (page) => `https://www.remotehub.com/jobs/search?query=${encodeURIComponent(role)}`,
         extractor: ($, source) => {
           const links = [];
@@ -358,22 +398,33 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 21. Indeed
+      // 18. Indeed (Dynamic)
       {
         name: 'Indeed',
+        dynamic: true,
         getUrl: (page) => `https://www.indeed.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fromage=4&start=${page * 10}`,
-        extractor: ($, source) => {
+        extractor: (source) => {
           const links = [];
-          $('a[id^="job_"], a.jcs-JobTitle').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.indeed.com${href}`, title: $(elem).find('span').text().trim() || $(elem).text().trim(), source });
+          // Indeed changes selectors often, try multiple
+          const output = document.querySelectorAll('a[id^="job_"], a.jcs-JobTitle');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            const title = el.innerText || el.textContent;
+            if (href && title) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.indeed.com${href}`,
+                title: title.trim(),
+                source: source
+              });
+            }
           });
           return links;
         }
       },
-      // 22. Monster
+      // 19. Monster (static/cheerio usually ok, but lets keep it static for now)
       {
         name: 'Monster',
+        dynamic: false,
         getUrl: (page) => `https://www.monster.com/jobs/search?q=${encodeURIComponent(role)}&where=${encodeURIComponent(location)}&tm=4&page=${page + 1}`,
         extractor: ($, source) => {
           const links = [];
@@ -384,48 +435,80 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 23. Glassdoor
+      // 20. Glassdoor (Dynamic)
       {
         name: 'Glassdoor',
+        dynamic: true,
         getUrl: (page) => `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=C&locId=1&locKeyword=${encodeURIComponent(location)}&fromAge=4`,
-        extractor: ($, source) => {
+        extractor: (source) => {
           const links = [];
-          $('a.jobLink, a[data-test="job-link"]').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.glassdoor.com${href}`, title: $(elem).text().trim(), source });
+          const output = document.querySelectorAll('a.jobLink, a[data-test="job-link"]');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            let title = el.innerText || el.textContent;
+            // Clean title if it contains rating numbers
+            title = title.replace(/\d\.\d.*/, '').trim();
+
+            if (href && title) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.glassdoor.com${href}`,
+                title: title,
+                source: source
+              });
+            }
           });
           return links;
         }
       },
-      // 24. LinkedIn
+      // 21. LinkedIn (Dynamic)
       {
         name: 'LinkedIn',
-        getUrl: (page) => `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&f_TPR=r345600&start=${page * 25}`, // approx 4 days
-        extractor: ($, source) => {
+        dynamic: true,
+        getUrl: (page) => `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&f_TPR=r345600&start=${page * 25}`,
+        extractor: (source) => {
           const links = [];
-          $('a.base-card__full-link').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href, title: $(el).text().trim(), source });
+          // base-card__full-link is common for "guest" search view
+          const output = document.querySelectorAll('a.base-card__full-link, a.job-card-list__title');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            const title = el.innerText || el.textContent;
+            if (href && title) {
+              links.push({
+                url: href.split('?')[0],
+                title: title.trim(),
+                source: source
+              });
+            }
           });
           return links;
         }
       },
-      // 25. ZipRecruiter
+      // 22. ZipRecruiter (Dynamic sometimes needed)
       {
         name: 'ZipRecruiter',
+        dynamic: true,
         getUrl: (page) => `https://www.ziprecruiter.com/candidate/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&days=4&page=${page + 1}`,
-        extractor: ($, source) => {
+        extractor: (source) => {
           const links = [];
-          $('a.job_link').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.ziprecruiter.com${href}`, title: $(elem).text().trim(), source });
+          const output = document.querySelectorAll('a.job_link');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            const title = el.innerText || el.textContent;
+            if (href && title) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.ziprecruiter.com${href}`,
+                title: title.trim(),
+                source: source
+              });
+            }
           });
           return links;
         }
       },
-      // 26. CareerBuilder
+      // 23. CareerBuilder
       {
         name: 'CareerBuilder',
+        dynamic: false,
         getUrl: (page) => `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&posted=4&page_number=${page + 1}`,
         extractor: ($, source) => {
           const links = [];
@@ -436,217 +519,64 @@ async function searchJobLinks(jobData, processId) {
           return links;
         }
       },
-      // 27. FlexJobs Corp (Duplicate of 1, skipping or reuse) - Adding as separate entry if desired or alias
-      {
-        name: 'FlexJobsCorp',
-        getUrl: (page) => `https://www.flexjobs.com/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&page=${page + 1}`,
-        extractor: ($, source) => { return []; } // Skip to avoid dupes
-      },
-      // 28. TheLadders
-      {
-        name: 'TheLadders',
-        getUrl: (page) => `https://www.theladders.com/jobs/search-results?keywords=${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-card-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.theladders.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 29. Snagajob
-      {
-        name: 'Snagajob',
-        getUrl: (page) => `https://www.snagajob.com/search?q=${encodeURIComponent(role)}&w=${encodeURIComponent(location)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a[class*="job-card"]').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.snagajob.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 30. Craigslist
-      {
-        name: 'Craigslist',
-        getUrl: (page) => `https://www.craigslist.org/search/jjj?query=${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.result-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 31. Dice
+      // 24. Dice (Dynamic)
       {
         name: 'Dice',
+        dynamic: true,
         getUrl: (page) => `https://www.dice.com/jobs?q=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&filters.postedDate=4&p=${page + 1}`,
-        extractor: ($, source) => {
+        extractor: (source) => {
           const links = [];
-          $('a.card-title-link').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.dice.com${href}`, title: $(elem).text().trim(), source });
+          // Dice uses Shadow DOM sometimes, or complex React. selector might find nothing if not lucky.
+          const output = document.querySelectorAll('a.card-title-link');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            const title = el.innerText || el.textContent;
+            if (href && title) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.dice.com${href}`,
+                title: title.trim(),
+                source: source
+              });
+            }
           });
           return links;
         }
       },
-      // 32. Careerjet
-      {
-        name: 'CareerJet',
-        getUrl: (page) => `https://www.careerjet.com/search/jobs?s=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&sort=date&p=${page + 1}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-link').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.careerjet.com${href}`, title: $(elem).find('h2').text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 33. USAJobs
-      {
-        name: 'USAJobs',
-        getUrl: (page) => `https://www.usajobs.gov/Search/Results?k=${encodeURIComponent(role)}&p=${page + 1}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.usajobs-search-result--core__title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.usajobs.gov${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 34. Upwork
-      {
-        name: 'Upwork',
-        getUrl: (page) => `https://www.upwork.com/nx/jobs/search/?q=${encodeURIComponent(role)}&page=${page + 1}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('section a').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href && href.includes('/jobs/')) links.push({ url: href.startsWith('http') ? href : `https://www.upwork.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 35. Freelancer
-      {
-        name: 'Freelancer',
-        getUrl: (page) => `https://www.freelancer.com/jobs/?keyword=${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.JobSearchCard-primary-heading-link').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.freelancer.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 36. Getwork
-      {
-        name: 'Getwork',
-        getUrl: (page) => `https://getwork.com/search/results?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://getwork.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 37. Hubstaff Talent (Duplicate of 13)
-      {
-        name: 'HubstaffTalent2',
-        getUrl: (page) => `https://talent.hubstaff.com/search/jobs?search=${encodeURIComponent(role)}`,
-        extractor: ($, source) => { return []; }
-      },
-      // 38. Nexxt
-      {
-        name: 'Nexxt',
-        getUrl: (page) => `https://www.nexxt.com/jobs/search?k=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-title').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 39. Dribbble
-      {
-        name: 'Dribbble',
-        getUrl: (page) => `https://dribbble.com/jobs?keyword=${encodeURIComponent(role)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.job-list-item-link').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://dribbble.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 40. Google For Jobs - Hard to scrape, but let's try a search
-      {
-        name: 'GoogleJobs',
-        getUrl: (page) => `https://www.google.com/search?q=${encodeURIComponent(role)}+jobs+near+${encodeURIComponent(location)}`,
-        extractor: ($, source) => {
-          // Google uses complex DOM, usually generic extractor or ignore
-          return [];
-        }
-      },
-      // 41. SimplyHired
+      // 25. SimplyHired (Dynamic)
       {
         name: 'SimplyHired',
+        dynamic: true,
         getUrl: (page) => `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fdb=4&curr_page=${page + 1}`,
-        extractor: ($, source) => {
+        extractor: (source) => {
           const links = [];
-          $('a.SerpJob-link').each((i, elem) => {
-            const href = $(elem).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.simplyhired.com${href}`, title: $(elem).text().trim(), source });
+          const output = document.querySelectorAll('a.SerpJob-link, h3[data-testid="searchSerpJobTitle"] a');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            const title = el.innerText || el.textContent;
+            if (href && title) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://www.simplyhired.com${href}`,
+                title: title.trim(),
+                source: source
+              });
+            }
           });
           return links;
         }
-      },
-      // 42. PostJobFree
-      {
-        name: 'PostJobFree',
-        getUrl: (page) => `https://www.postjobfree.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}`,
-        extractor: ($, source) => {
-          const links = [];
-          $('a.titleLink').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href) links.push({ url: href.startsWith('http') ? href : `https://www.postjobfree.com${href}`, title: $(el).text().trim(), source });
-          });
-          return links;
-        }
-      },
-      // 43. Wellfound (Duplicate of AngelList)
-      {
-        name: 'Wellfound',
-        getUrl: (page) => `https://wellfound.com/jobs?q=${encodeURIComponent(role)}`,
-        extractor: ($, source) => { return []; }
-      },
-      // 44. AngelList (Duplicate)
-      {
-        name: 'AngelList2',
-        getUrl: (page) => `https://wellfound.com/jobs`,
-        extractor: ($, source) => { return []; }
       }
     ];
 
-    const MAX_CONCURRENT = 5; // Reduced to 5 for stability
+    const MAX_CONCURRENT = 3; // Reduced concurrency for safety
+
+    // Chunk processing
     for (let i = 0; i < jobBoards.length; i += MAX_CONCURRENT) {
       const chunk = jobBoards.slice(i, i + MAX_CONCURRENT);
+      console.log(`[Process ${processId}] Starting chunk ${i / MAX_CONCURRENT + 1} with ${chunk.length} boards`);
+
       await Promise.all(chunk.map(async (board) => {
         try {
-          // Reduce results per board to avoid overwhelming
-          const boardResults = await searchJobBoard(board, processId, browser, 10);
+          // Keep minResults low to avoid aggressive scraping
+          const boardResults = await searchJobBoard(board, processId, browser, 15);
           if (boardResults.length > 0) {
             allJobLinks[board.name] = boardResults;
             channelStats[board.name] = boardResults.length;
@@ -658,10 +588,12 @@ async function searchJobLinks(jobData, processId) {
           channelStats[board.name] = 0;
         }
       }));
+
+      // Small pause between chunks
+      await new Promise(r => setTimeout(r, 1000));
     }
 
     const allLinks = [];
-    const seenUrls = new Set();
 
     // Helper to check title relevance
     function isJobRelevant(title, role) {
@@ -673,25 +605,22 @@ async function searchJobLinks(jobData, processId) {
       const roleWords = cleanStr(role);
       const titleWords = cleanStr(title);
 
-      // If role has "engineer", checks if title has any role word. 
-      // For "DevOps Engineer", matches "DevOps" OR "Engineer".
-      // Strictness: Must match at least one significant word.
+      // Relevance check: Title must contain at least one significant word from the role
       return roleWords.some(rw => titleWords.includes(rw));
     }
 
     for (const [channel, links] of Object.entries(allJobLinks)) {
       for (const link of links) {
-        const normalizedUrl = link.url.split('?')[0].toLowerCase();
+        if (!link.title) continue;
 
-        // Filter out duplicates check removed - allowing duplicates from different sources if unique per source
-        // if (!seenUrls.has(normalizedUrl)) {
         if (isJobRelevant(link.title, role)) {
-          // seenUrls.add(normalizedUrl);
           allLinks.push(link);
         } else {
-          if (processId % 5 === 0) console.log(`[Process ${processId}] Skipped irrelevant job from ${channel}: "${link.title}" (Role: ${role})`);
+          // Sampling log to avoid spam
+          if (Math.random() < 0.05) {
+            console.log(`[Process ${processId}] Skipped irrelevant job from ${channel}: "${link.title}"`);
+          }
         }
-        // }
       }
     }
 
@@ -725,6 +654,7 @@ async function saveJobsToMongo(jobs, processId, jobData) {
     const collection = db.collection('job_links');
 
     const ops = jobs.map(job => {
+      // Use URL as unique ID
       const applyUrl = job.url;
       const doc = {
         title: job.title || "Unknown Title",
