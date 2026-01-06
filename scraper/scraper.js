@@ -1,3 +1,4 @@
+global.File = class File {};
 const { connectToMongo } = require('./mongo');
 const { searchAndSaveJobLinks } = require('./jobSearch/jobSearcher');
 
