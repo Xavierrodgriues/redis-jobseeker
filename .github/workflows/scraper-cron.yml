@@ -2,13 +2,44 @@ name: Job Scraper Cron
 
 on:
   schedule:
-    # Runs twice a day (UTC)
     - cron: "0 3,15 * * *"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 2
+      matrix:
+        shard:
+          - name: engineering-core
+            roles: >
+              ["Backend Engineer","Frontend Engineer","Full Stack Engineer","Mobile Engineer","Software Engineer","Platform Engineer"]
+
+          - name: cloud-devops
+            roles: >
+              ["Cloud Engineer","Cloud Architect","DevOps Engineer","Site Reliability Engineer (SRE)","Infrastructure Engineer","Observability Engineer","Monitoring / SIEM Engineer"]
+
+          - name: data-ai
+            roles: >
+              ["Data Engineer","Data Scientist","Analytics Engineer","Machine Learning Engineer","AI Engineer","Business Intelligence Engineer"]
+
+          - name: security
+            roles: >
+              ["Security Engineer","Cloud Security Engineer","Application Security Engineer","Network Security Engineer","Cyber Security Analyst","GRC / Compliance Engineer","FedRAMP / ATO Engineer"]
+
+          - name: qa-testing
+            roles: >
+              ["QA Engineer","Automation Test Engineer","Performance Test Engineer","Security Test Engineer","Test Lead / QA Lead"]
+
+          - name: management
+            roles: >
+              ["Product Manager","Technical Product Manager","Project Manager","Program Manager","Scrum Master / Agile Coach","Business Analyst","IT Manager","Technology Risk Manager","CTO / CIO"]
+
+          - name: enterprise-it
+            roles: >
+              ["ERP Consultant","CRM Consultant","SAP Analyst","ServiceNow Developer / Admin","IT Asset / ITOM Engineer","Systems Engineer","Linux / Unix Administrator","Network Engineer"]
 
     steps:
       - name: Checkout repository
@@ -25,8 +56,9 @@ jobs:
           npm install
 
       - name: Run scraper
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          ROLES: ${{ matrix.shard.roles }}
         run: |
           cd scraper
           node scraper.js
-        env:
-          MONGO_URI: ${{ secrets.MONGO_URI }}
