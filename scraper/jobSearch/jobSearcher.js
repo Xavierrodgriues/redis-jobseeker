@@ -124,10 +124,10 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
             console.warn(`🚫 [${query.name}] Bot protection detected`);
           }
 
-          // Dump HTML
-          const dumpFileName = `debug-${query.name}.html`;
-          fs.writeFileSync(dumpFileName, htmlContent);
-          console.log(`📄 [${query.name}] HTML dumped to ${dumpFileName}`);
+          // Dump HTML (Disabled by user request)
+          // const dumpFileName = `debug-${query.name}.html`;
+          // fs.writeFileSync(dumpFileName, htmlContent);
+          // console.log(`📄 [${query.name}] HTML dumped to ${dumpFileName}`);
 
           break;
         }
