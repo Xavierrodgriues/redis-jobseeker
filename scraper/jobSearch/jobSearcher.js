@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { getDb } = require('../mongo');
+const fs = require('fs');
 
 puppeteer.use(StealthPlugin());
 
@@ -69,7 +70,7 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
     while (jobLinks.length < minResults && pageNum < maxPages) {
       try {
         const url = query.getUrl(pageNum);
-        console.log(`[Process ${processId}] Searching ${query.name} (page ${pageNum + 1})`);
+        console.log(`🌐 [${query.name}] Scraping started (page ${pageNum + 1})`);
 
         // Navigate with better wait conditions
         const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -89,7 +90,6 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
         // Scroll to trigger lazy loading
         await autoScroll(page);
 
-        // Additional small pause specifically for dynamic sites
         if (query.dynamic) {
           await new Promise(r => setTimeout(r, 2000));
         }
@@ -106,6 +106,9 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
           pageLinks = query.extractor($, query.name);
         }
 
+        const htmlContent = await page.content();
+        console.log(`🔎 [${query.name}] Status: ${response ? response.status() : 'unknown'} | HTML size: ${htmlContent.length}`);
+
         if (!pageLinks || pageLinks.length === 0) {
           // Log debugging info for zero results
           const title = await page.title();
@@ -113,14 +116,24 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
           console.log(`[Process ${processId}] No results on ${query.name} page ${pageNum + 1}. Title: "${title}", URL: "${currentUrl}"`);
 
           // Check for potential captcha/login
-          if (title.toLowerCase().includes('captcha') || title.toLowerCase().includes('robot') || title.toLowerCase().includes('login')) {
-            console.warn(`[Process ${processId}] ${query.name} appears to be blocked or requiring login.`);
+          const lowerTitle = title.toLowerCase();
+          const lowerContent = htmlContent.toLowerCase();
+
+          if (lowerTitle.includes('captcha') || lowerTitle.includes('robot') || lowerTitle.includes('verify you are human') || lowerTitle.includes('access denied') ||
+            lowerContent.includes('verify you are human') || lowerContent.includes('captcha')) {
+            console.warn(`🚫 [${query.name}] Bot protection detected`);
           }
+
+          // Dump HTML
+          const dumpFileName = `debug-${query.name}.html`;
+          fs.writeFileSync(dumpFileName, htmlContent);
+          console.log(`📄 [${query.name}] HTML dumped to ${dumpFileName}`);
+
           break;
         }
 
         jobLinks.push(...pageLinks);
-        console.log(`[Process ${processId}] Found ${pageLinks.length} on ${query.name}`);
+        console.log(`📦 [${query.name}] Jobs extracted: ${pageLinks.length}`);
 
         if (jobLinks.length < minResults) {
           pageNum++;
@@ -653,32 +666,58 @@ async function saveJobsToMongo(jobs, processId, jobData) {
     const db = getDb();
     const collection = db.collection('job_links');
 
-    const ops = jobs.map(job => {
-      // Use URL as unique ID
-      const applyUrl = job.url;
-      const doc = {
-        title: job.title || "Unknown Title",
-        company: "Unknown",
-        role: jobData.role || job.title,
-        experience: jobData.experience || "all",
-        country: "United States",
-        apply_url: applyUrl,
-        source: job.source,
-        scrapedAt: new Date()
-      };
+    // Group jobs by source for granular logging
+    const jobsBySource = {};
+    for (const job of jobs) {
+      const source = job.source || 'Unknown';
+      if (!jobsBySource[source]) jobsBySource[source] = [];
+      jobsBySource[source].push(job);
+    }
 
-      return {
-        updateOne: {
-          filter: { apply_url: applyUrl },
-          update: { $set: doc },
-          upsert: true
-        }
-      };
-    });
+    for (const [source, sourceJobs] of Object.entries(jobsBySource)) {
+      console.log(`💾 [${source}] Attempting to save ${sourceJobs.length} jobs`);
 
-    if (ops.length > 0) {
-      const result = await collection.bulkWrite(ops);
-      console.log(`[Process ${processId}] MongoDB Bulk Write: matched=${result.matchedCount}, modified=${result.modifiedCount}, upserted=${result.upsertedCount}`);
+      const ops = sourceJobs.map(job => {
+        // Use URL as unique ID
+        const applyUrl = job.url;
+        const doc = {
+          title: job.title || "Unknown Title",
+          company: "Unknown",
+          role: jobData.role || job.title,
+          experience: jobData.experience || "all",
+          country: "United States",
+          apply_url: applyUrl,
+          source: job.source,
+          scrapedAt: new Date()
+        };
+
+        return {
+          updateOne: {
+            filter: { apply_url: applyUrl },
+            update: { $set: doc },
+            upsert: true
+          }
+        };
+      });
+
+      if (ops.length > 0) {
+        const result = await collection.bulkWrite(ops);
+        const saved = result.upsertedCount + result.modifiedCount; // Counting modified as saved/updated
+        const duplicates = result.matchedCount - result.modifiedCount; // Matched but not modified implies pure duplicate (or just matched)
+
+        // Actually, matchedCount includes both modified and not modified.
+        // upsertedCount = inserted.
+        // matchedCount = found existing.
+        // So "Duplicates skipped" roughly equals matchedCount if we assume we aren't changing much.
+        // But let's stick to the user's "Saved" vs "skipped".
+        // New inserts = upsertedCount.
+        // Updates = modifiedCount.
+        // Skips (exact match) = matchedCount - modifiedCount.
+
+        // Simple log:
+        if (result.upsertedCount > 0) console.log(`✅ [${source}] Saved ${result.upsertedCount} new jobs`);
+        if (result.matchedCount > 0) console.log(`⚠️ [${source}] Duplicate jobs skipped/updated: ${result.matchedCount}`);
+      }
     }
 
   } catch (error) {

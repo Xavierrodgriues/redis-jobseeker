@@ -5,7 +5,7 @@ const { searchAndSaveJobLinks } = require('./jobSearch/jobSearcher');
 async function runScraper() {
   await connectToMongo();
   console.log('Connected to MongoDB');
-// 57+ roles
+
   const roles = [
     "Backend Engineer",
     "Frontend Engineer",
@@ -84,6 +84,8 @@ async function runScraper() {
   const location = 'United States';
   const processId = process.pid.toString();
 
+  console.log('▶ Starting scrape batch');
+
   for (const role of roles) {
     for (const experience of experiences) {
       const jobData = {
@@ -92,12 +94,13 @@ async function runScraper() {
         location
       };
 
-      console.log(`Scraping: ${role} | ${experience}`);
+      console.log(`▶ Role: ${role} | Experience: ${experience}`);
 
       try {
         await searchAndSaveJobLinks(jobData, processId);
+        console.log(`✔ Finished: ${role} | ${experience}`);
       } catch (err) {
-        console.error('Error scraping job:', err.message);
+        console.error(`❌ Failed: ${role} | ${experience} - ${err.message}`);
       }
 
       // small delay to avoid rate limits
