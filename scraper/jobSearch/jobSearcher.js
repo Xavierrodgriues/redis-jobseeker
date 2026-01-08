@@ -576,6 +576,31 @@ async function searchJobLinks(jobData, processId) {
           });
           return links;
         }
+      },
+      // 26. Jobright
+      {
+        name: 'Jobright',
+        dynamic: true,
+        getUrl: (page) => `https://jobright.ai/remote-jobs`, // Infinite scroll handled by autoScroll
+        extractor: (source) => {
+          const links = [];
+          // Select all links that look like job details
+          const output = document.querySelectorAll('a[href*="/jobs/info/"]');
+          output.forEach(el => {
+            const href = el.getAttribute('href');
+            // Extract text, try to get just the title if possible, otherwise full text
+            let title = el.querySelector('h3, .title, .job-title')?.innerText || el.innerText || el.textContent;
+
+            if (href && title) {
+              links.push({
+                url: href.startsWith('http') ? href : `https://jobright.ai${href}`,
+                title: title.trim(),
+                source: source
+              });
+            }
+          });
+          return links;
+        }
       }
     ];
 
