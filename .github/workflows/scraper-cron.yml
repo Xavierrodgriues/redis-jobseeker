@@ -13,33 +13,42 @@ jobs:
       max-parallel: 2
       matrix:
         shard:
-          - name: engineering-core
+
+          - name: core-engineering
             roles: >
-              ["Backend Engineer","Frontend Engineer","Full Stack Engineer","Mobile Engineer","Software Engineer","Platform Engineer"]
+              ["Backend Engineer","Frontend Engineer","Full Stack Engineer","Mobile Engineer","Software Engineer","Platform Engineer","Systems Engineer","Embedded Systems Engineer","UI UX"]
 
           - name: cloud-devops
             roles: >
-              ["Cloud Engineer","Cloud Architect","DevOps Engineer","Site Reliability Engineer (SRE)","Infrastructure Engineer","Observability Engineer","Monitoring / SIEM Engineer"]
+              ["Cloud Engineer","Cloud Architect","DevOps Engineer","Site Reliability Engineer (SRE)","Infrastructure Engineer","Cloud Strategy Consultant","Network Cloud Engineer"]
+
+          - name: security-risk
+            roles: >
+              ["Security Engineer","Cloud Security Engineer","Application Security Engineer","Network Security Engineer","Cyber Security Analyst","GRC / Compliance Engineer","FedRAMP / ATO Engineer","Technology Risk Manager"]
 
           - name: data-ai
             roles: >
-              ["Data Engineer","Data Scientist","Analytics Engineer","Machine Learning Engineer","AI Engineer","Business Intelligence Engineer"]
-
-          - name: security
-            roles: >
-              ["Security Engineer","Cloud Security Engineer","Application Security Engineer","Network Security Engineer","Cyber Security Analyst","GRC / Compliance Engineer","FedRAMP / ATO Engineer"]
+              ["Data Engineer","Data Scientist","Analytics Engineer","Business Intelligence Engineer","Machine Learning Engineer","AI Engineer","Financial Analyst"]
 
           - name: qa-testing
             roles: >
               ["QA Engineer","Automation Test Engineer","Performance Test Engineer","Security Test Engineer","Test Lead / QA Lead"]
 
-          - name: management
+          - name: it-operations
             roles: >
-              ["Product Manager","Technical Product Manager","Project Manager","Program Manager","Scrum Master / Agile Coach","Business Analyst","IT Manager","Technology Risk Manager","CTO / CIO"]
+              ["IT Infrastructure Engineer","IT Operations Engineer","Linux / Unix Administrator","Monitoring / SIEM Engineer","Observability Engineer","Release / Configuration Manager","Network Engineer"]
 
-          - name: enterprise-it
+          - name: enterprise-apps
             roles: >
-              ["ERP Consultant","CRM Consultant","SAP Analyst","ServiceNow Developer / Admin","IT Asset / ITOM Engineer","Systems Engineer","Linux / Unix Administrator","Network Engineer"]
+              ["SAP Analyst","ERP Consultant","CRM Consultant","ServiceNow Developer / Admin","IT Asset / ITOM Engineer","Workday Analyst","Salesforce Developer"]
+
+          - name: architecture-leadership
+            roles: >
+              ["Enterprise Architect","Solutions Architect","IT Manager","CTO / CIO","Product Manager","Technical Product Manager","Project Manager","Program Manager"]
+
+          - name: emerging-tech
+            roles: >
+              ["Blockchain Engineer","IoT Engineer","Robotics Engineer","AR / VR Engineer","AML KYC","Business Analyst"]
 
     steps:
       - name: Checkout repository
