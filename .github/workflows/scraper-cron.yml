@@ -24,7 +24,7 @@ jobs:
 
           - name: security-risk
             roles: >
-              ["Security Engineer","Cloud Security Engineer","Application Security Engineer","Network Security Engineer","Cyber Security Analyst","GRC / Compliance Engineer","FedRAMP / ATO Engineer","Technology Risk Manager"]
+              ["Security Engineer","Cloud Security Engineer","Application Security Engineer","Network Security Engineer","Cyber Security Analyst","GRC / Compliance Engineer", "IT Auditor","FedRAMP / ATO Engineer","Technology Risk Manager"]
 
           - name: data-ai
             roles: >
