@@ -66,6 +66,27 @@ app.get('/api/v1/search', async (req, res) => {
 
 
 
+
+// Roles defined in .github/workflows/scraper-cron.yml
+const SUPPORTED_ROLES = [
+  "Backend Engineer", "Frontend Engineer", "Full Stack Engineer", "Mobile Engineer", "Software Engineer",
+  "Platform Engineer", "Systems Engineer", "Embedded Systems Engineer", "UI UX",
+  "Cloud Engineer", "Cloud Architect", "DevOps Engineer", "Site Reliability Engineer (SRE)", "Infrastructure Engineer",
+  "Cloud Strategy Consultant", "Network Cloud Engineer",
+  "Security Engineer", "Cloud Security Engineer", "Application Security Engineer", "Network Security Engineer",
+  "Cyber Security Analyst", "GRC / Compliance Engineer", "FedRAMP / ATO Engineer", "Technology Risk Manager",
+  "Data Engineer", "Data Scientist", "Analytics Engineer", "Business Intelligence Engineer", "Machine Learning Engineer",
+  "AI Engineer", "Financial Analyst",
+  "QA Engineer", "Automation Test Engineer", "Performance Test Engineer", "Security Test Engineer", "Test Lead / QA Lead",
+  "IT Infrastructure Engineer", "IT Operations Engineer", "Linux / Unix Administrator", "Monitoring / SIEM Engineer",
+  "Observability Engineer", "Release / Configuration Manager", "Network Engineer",
+  "SAP Analyst", "ERP Consultant", "CRM Consultant", "ServiceNow Developer / Admin", "IT Asset / ITOM Engineer",
+  "Workday Analyst", "Salesforce Developer",
+  "Enterprise Architect", "Solutions Architect", "IT Manager", "CTO / CIO", "Product Manager", "Technical Product Manager",
+  "Project Manager", "Program Manager",
+  "Blockchain Engineer", "IoT Engineer", "Robotics Engineer", "AR / VR Engineer", "AML KYC", "Business Analyst"
+];
+
 app.get('/api/v1/suggestions', async (req, res) => {
   try {
     const { query } = req.query;
@@ -73,33 +94,23 @@ app.get('/api/v1/suggestions', async (req, res) => {
       return res.json({ suggestions: [] });
     }
 
-    const db = getDb();
-    const collection = db.collection('job_links');
+    const lowerQuery = query.toLowerCase();
 
-    // Use aggregation to find distinct roles matching the query
-    const suggestions = await collection.aggregate([
-      {
-        $match: {
-          role: { $regex: query, $options: 'i' }
-        }
-      },
-      {
-        $group: {
-          _id: "$role" // Group by role to get unique values
-        }
-      },
-      {
-        $limit: 10 // Limit to 10 suggestions
-      },
-      {
-        $project: {
-          _id: 0,
-          role: "$_id"
-        }
-      }
-    ]).toArray();
+    // Filter supported roles
+    const matches = SUPPORTED_ROLES.filter(role =>
+      role.toLowerCase().includes(lowerQuery)
+    );
 
-    res.json({ suggestions: suggestions.map(s => s.role) });
+    // Sort: exact startsWith matches first, then others
+    matches.sort((a, b) => {
+      const aStarts = a.toLowerCase().startsWith(lowerQuery);
+      const bStarts = b.toLowerCase().startsWith(lowerQuery);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return 0;
+    });
+
+    res.json({ suggestions: matches.slice(0, 10) }); // Limit to top 10
   } catch (error) {
     console.error('Suggestion error:', error);
     res.status(500).json({ error: 'Failed to fetch suggestions' });
