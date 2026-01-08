@@ -64,6 +64,48 @@ app.get('/api/v1/search', async (req, res) => {
 
 
 
+
+
+app.get('/api/v1/suggestions', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query || query.length < 1) {
+      return res.json({ suggestions: [] });
+    }
+
+    const db = getDb();
+    const collection = db.collection('job_links');
+
+    // Use aggregation to find distinct roles matching the query
+    const suggestions = await collection.aggregate([
+      {
+        $match: {
+          role: { $regex: query, $options: 'i' }
+        }
+      },
+      {
+        $group: {
+          _id: "$role" // Group by role to get unique values
+        }
+      },
+      {
+        $limit: 10 // Limit to 10 suggestions
+      },
+      {
+        $project: {
+          _id: 0,
+          role: "$_id"
+        }
+      }
+    ]).toArray();
+
+    res.json({ suggestions: suggestions.map(s => s.role) });
+  } catch (error) {
+    console.error('Suggestion error:', error);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+});
+
 app.post('/api/v1/request-for-link', async (req, res) => {
   try {
     const { role, userId, experience, location } = req.body;
