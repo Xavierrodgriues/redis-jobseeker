@@ -74,7 +74,7 @@ const SUPPORTED_ROLES = [
   "Cloud Engineer", "Cloud Architect", "DevOps Engineer", "Site Reliability Engineer (SRE)", "Infrastructure Engineer",
   "Cloud Strategy Consultant", "Network Cloud Engineer",
   "Security Engineer", "Cloud Security Engineer", "Application Security Engineer", "Network Security Engineer",
-  "Cyber Security Analyst", "GRC / Compliance Engineer", "FedRAMP / ATO Engineer", "Technology Risk Manager",
+  "Cyber Security Analyst", "GRC / Compliance Engineer", "IT Auditor", "FedRAMP / ATO Engineer", "Technology Risk Manager",
   "Data Engineer", "Data Scientist", "Analytics Engineer", "Business Intelligence Engineer", "Machine Learning Engineer",
   "AI Engineer", "Financial Analyst",
   "QA Engineer", "Automation Test Engineer", "Performance Test Engineer", "Security Test Engineer", "Test Lead / QA Lead",
