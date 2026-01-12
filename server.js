@@ -162,62 +162,153 @@ app.post('/api/v1/request-for-link', async (req, res) => {
 
 // --- AUTHENTICATION ENDPOINTS ---
 
+const nodemailer = require('nodemailer');
+
+// Configure Nodemailer Transporter
+// IMPORTANT: Replace with valid SMTP credentials for production
+const transporter = nodemailer.createTransport({
+  service: 'gmail', // or your preferred service
+  auth: {
+    user: 'yatendrayuvii@gmail.com', // Replace with environment variable
+    pass: 'hwbg cbno kgci njnh'      // Replace with environment variable
+  }
+});
+
+// Helper to send email
+async function sendUtcEmail(email, otp) {
+  try {
+    const mailOptions = {
+      from: '"Yuvii Job Scraper" <no-reply@yuvii.com>',
+      to: email,
+      subject: 'Your Login OTP',
+      text: `Your One-Time Password (OTP) for login is: ${otp}. It expires in 5 minutes.`
+    };
+
+    // Attempt to send email
+    await transporter.sendMail(mailOptions);
+    console.log(`📧 OTP sent to ${email}`);
+
+    // FOR DEV/PROTOTYPE: Log OTP to console ensuring we can log in even without valid SMTP
+    console.log(`🔐 [DEV ONLY] OTP for ${email}: ${otp}`);
+
+  } catch (error) {
+    console.error('Error sending email:', error);
+    // In dev, we might still want to succeed if we are just logging
+    console.log(`🔐 [DEV ONLY] OTP for ${email}: ${otp}`);
+  }
+}
+
 app.post('/api/v1/register', async (req, res) => {
   try {
-    const { username, password, role } = req.body;
-    if (!username || !password || !role) {
-      return res.status(400).json({ error: 'Username, password, and role are required' });
+    const { email, role } = req.body;
+    if (!email || !role) {
+      return res.status(400).json({ error: 'Email and role are required' });
     }
 
     const db = getDb();
     const users = db.collection('users');
 
     // Check if user exists
-    const existingUser = await users.findOne({ username });
+    const existingUser = await users.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Username already taken' });
+      return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Insert new user
-    // NOTE: In production, passwords MUST BE HASHED (e.g., bcrypt). 
-    // Storing plain text for this prototype as per functional requirements.
     const newUser = {
-      username,
-      password, // Plain text for prototype only
+      email,
       role,
       createdAt: new Date()
     };
 
     await users.insertOne(newUser);
 
-    res.status(201).json({ success: true, message: 'User registered successfully', user: { username, role } });
+    res.status(201).json({ success: true, message: 'User registered successfully', user: { email, role } });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Registration failed' });
   }
 });
 
-app.post('/api/v1/login', async (req, res) => {
+app.post('/api/v1/auth/send-otp', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
     }
 
     const db = getDb();
     const users = db.collection('users');
+    const otps = db.collection('otp_codes');
 
-    const user = await users.findOne({ username });
-
-    if (!user || user.password !== password) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+    // Check if user exists
+    const user = await users.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found. Please register first.' });
     }
 
-    // Login successful
-    res.json({ success: true, user: { username: user.username, role: user.role } });
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Upsert OTP
+    await otps.updateOne(
+      { email },
+      { $set: { otp, expiresAt, createdAt: new Date() } },
+      { upsert: true }
+    );
+
+    // Send Email (and log for dev)
+    await sendUtcEmail(email, otp);
+
+    res.json({ success: true, message: 'OTP sent to your email' });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('Send OTP error:', error);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+app.post('/api/v1/auth/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    const db = getDb();
+    const otps = db.collection('otp_codes');
+    const users = db.collection('users');
+
+    // Find OTP
+    const otpRecord = await otps.findOne({ email });
+
+    if (!otpRecord) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    // Check expiry
+    if (new Date() > otpRecord.expiresAt) {
+      return res.status(400).json({ error: 'OTP has expired' });
+    }
+
+    // Check Match
+    if (otpRecord.otp !== otp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    // Get User Role
+    const user = await users.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    // Valid! Login successful.
+    // Optional: Delete OTP after use to prevent replay
+    await otps.deleteOne({ email });
+
+    res.json({ success: true, user: { email: user.email, role: user.role } });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ error: 'Verification failed' });
   }
 });
 
