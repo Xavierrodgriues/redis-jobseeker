@@ -160,6 +160,68 @@ app.post('/api/v1/request-for-link', async (req, res) => {
 });
 
 
+// --- AUTHENTICATION ENDPOINTS ---
+
+app.post('/api/v1/register', async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+    if (!username || !password || !role) {
+      return res.status(400).json({ error: 'Username, password, and role are required' });
+    }
+
+    const db = getDb();
+    const users = db.collection('users');
+
+    // Check if user exists
+    const existingUser = await users.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    // Insert new user
+    // NOTE: In production, passwords MUST BE HASHED (e.g., bcrypt). 
+    // Storing plain text for this prototype as per functional requirements.
+    const newUser = {
+      username,
+      password, // Plain text for prototype only
+      role,
+      createdAt: new Date()
+    };
+
+    await users.insertOne(newUser);
+
+    res.status(201).json({ success: true, message: 'User registered successfully', user: { username, role } });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.post('/api/v1/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    const db = getDb();
+    const users = db.collection('users');
+
+    const user = await users.findOne({ username });
+
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // Login successful
+    res.json({ success: true, user: { username: user.username, role: user.role } });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+
 app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
