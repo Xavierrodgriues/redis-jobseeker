@@ -35,7 +35,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // Search API
 app.get('/api/v1/search', async (req, res) => {
   try {
-    const { role, experience } = req.query;
+    const { role, experience, sortBy, dateRange } = req.query;
     const db = getDb();
     const collection = db.collection('job_links');
 
@@ -53,7 +53,27 @@ app.get('/api/v1/search', async (req, res) => {
       query.experience = { $regex: experience.split(' ')[0], $options: 'i' };
     }
 
-    const jobs = await collection.find(query).sort({ scrapedAt: -1 }).toArray();
+    if (dateRange && dateRange !== 'all') {
+      const now = new Date();
+      let pastDate = new Date();
+
+      if (dateRange === '24h') {
+        pastDate.setDate(now.getDate() - 1);
+      } else if (dateRange === '7d') {
+        pastDate.setDate(now.getDate() - 7);
+      } else if (dateRange === '30d') {
+        pastDate.setDate(now.getDate() - 30);
+      }
+
+      query.scrapedAt = { $gte: pastDate };
+    }
+
+    let sortOptions = { scrapedAt: -1 }; // Default: Latest first
+    if (sortBy === 'oldest') {
+      sortOptions = { scrapedAt: 1 };
+    }
+
+    const jobs = await collection.find(query).sort(sortOptions).toArray();
 
     res.json({ jobs });
   } catch (error) {
