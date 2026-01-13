@@ -170,8 +170,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail', // or your preferred service
   auth: {
-    user: process.env.EMAIL, // Replace with environment variable
-    pass: process.env.PASSWORD      // Replace with environment variable
+    user: 'yatendrayuvii@gmail.com', // Replace with environment variable
+    pass: 'hwbg cbno kgci njnh'      // Replace with environment variable
   }
 });
 

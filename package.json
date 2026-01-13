@@ -19,8 +19,7 @@
     "mongodb": "^7.0.0",
     "nodemailer": "^7.0.12",
     "nodemon": "^3.1.11",
-    "redis": "^4.6.10",
-    "resend": "^6.7.0"
+    "redis": "^4.6.10"
   },
   "keywords": [],
   "author": "",
