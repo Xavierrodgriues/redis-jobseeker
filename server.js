@@ -198,36 +198,37 @@ async function sendUtcEmail(email, otp) {
   }
 }
 
-app.post('/api/v1/register', async (req, res) => {
-  try {
-    const { email, role } = req.body;
-    if (!email || !role) {
-      return res.status(400).json({ error: 'Email and role are required' });
-    }
-
-    const db = getDb();
-    const users = db.collection('users');
-
-    // Check if user exists
-    const existingUser = await users.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
-    }
-
-    const newUser = {
-      email,
-      role,
-      createdAt: new Date()
-    };
-
-    await users.insertOne(newUser);
-
-    res.status(201).json({ success: true, message: 'User registered successfully', user: { email, role } });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
+// PUBLIC REGISTRATION REMOVED - ONLY ADMIN CAN CREATE USERS
+// app.post('/api/v1/register', async (req, res) => {
+//   try {
+//     const { email, role } = req.body;
+//     if (!email || !role) {
+//       return res.status(400).json({ error: 'Email and role are required' });
+//     }
+//
+//     const db = getDb();
+//     const users = db.collection('users');
+//
+//     // Check if user exists
+//     const existingUser = await users.findOne({ email });
+//     if (existingUser) {
+//       return res.status(400).json({ error: 'Email already registered' });
+//     }
+//
+//     const newUser = {
+//       email,
+//       role,
+//       createdAt: new Date()
+//     };
+//
+//     await users.insertOne(newUser);
+//
+//     res.status(201).json({ success: true, message: 'User registered successfully', user: { email, role } });
+//   } catch (error) {
+//     console.error('Register error:', error);
+//     res.status(500).json({ error: 'Registration failed' });
+//   }
+// });
 
 app.post('/api/v1/auth/send-otp', async (req, res) => {
   try {
@@ -309,6 +310,115 @@ app.post('/api/v1/auth/verify-otp', async (req, res) => {
   } catch (error) {
     console.error('Verify OTP error:', error);
     res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// --- ADMIN ROUTES ---
+
+app.post('/api/v1/admin/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const db = getDb();
+    const admins = db.collection('admins');
+    const otps = db.collection('otp_codes');
+
+    const admin = await admins.findOne({ email });
+    if (!admin) return res.status(403).json({ error: 'Access denied. not an admin.' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await otps.updateOne(
+      { email },
+      { $set: { otp, expiresAt, createdAt: new Date() } },
+      { upsert: true }
+    );
+
+    await sendUtcEmail(email, otp);
+    res.json({ success: true, message: 'Admin OTP sent' });
+  } catch (error) {
+    console.error('Admin Send OTP error:', error);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+app.post('/api/v1/admin/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const db = getDb();
+    const otps = db.collection('otp_codes');
+    const admins = db.collection('admins');
+
+    const otpRecord = await otps.findOne({ email });
+    if (!otpRecord || otpRecord.otp !== otp || new Date() > otpRecord.expiresAt) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    const admin = await admins.findOne({ email });
+    if (!admin) return res.status(403).json({ error: 'Not an admin' });
+
+    await otps.deleteOne({ email });
+    res.json({ success: true, admin: { email: admin.email, role: 'admin' } });
+  } catch (error) {
+    console.error('Admin Verify OTP error:', error);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+// Admin: Get All Users
+app.get('/api/v1/admin/users', async (req, res) => {
+  try {
+    const db = getDb();
+    const users = await db.collection('users').find({}).toArray();
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Admin: Create User
+app.post('/api/v1/admin/users', async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    if (!email || !role) return res.status(400).json({ error: 'Missing fields' });
+
+    const db = getDb();
+    const users = db.collection('users');
+
+    const existing = await users.findOne({ email });
+    if (existing) return res.status(400).json({ error: 'User already exists' });
+
+    await users.insertOne({ email, role, createdAt: new Date() });
+    res.json({ success: true, message: 'User created' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Admin: Update User Role
+app.put('/api/v1/admin/users/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { role } = req.body;
+    const db = getDb();
+    await db.collection('users').updateOne({ email }, { $set: { role } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+// Admin: Delete User
+app.delete('/api/v1/admin/users/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const db = getDb();
+    await db.collection('users').deleteOne({ email });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Delete failed' });
   }
 });
 
