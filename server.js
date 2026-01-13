@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -169,8 +170,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail', // or your preferred service
   auth: {
-    user: 'yatendrayuvii@gmail.com', // Replace with environment variable
-    pass: 'hwbg cbno kgci njnh'      // Replace with environment variable
+    user: process.env.EMAIL, // Replace with environment variable
+    pass: process.env.PASSWORD      // Replace with environment variable
   }
 });
 
@@ -230,86 +231,37 @@ async function sendUtcEmail(email, otp) {
 //   }
 // });
 
-app.post('/api/v1/auth/send-otp', async (req, res) => {
+// --- USER AUTHENTICATION (PASSWORD BASED) ---
+
+app.post('/api/v1/auth/login', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
     const db = getDb();
     const users = db.collection('users');
-    const otps = db.collection('otp_codes');
 
-    // Check if user exists
     const user = await users.findOne({ email });
     if (!user) {
-      return res.status(404).json({ error: 'User not found. Please register first.' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-    // Upsert OTP
-    await otps.updateOne(
-      { email },
-      { $set: { otp, expiresAt, createdAt: new Date() } },
-      { upsert: true }
-    );
-
-    // Send Email (and log for dev)
-    await sendUtcEmail(email, otp);
-
-    res.json({ success: true, message: 'OTP sent to your email' });
-  } catch (error) {
-    console.error('Send OTP error:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
-  }
-});
-
-app.post('/api/v1/auth/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP are required' });
+    // Check if user uses password auth (some old users might not have password)
+    if (!user.password) {
+      return res.status(400).json({ error: 'Please contact admin to set your password' });
     }
 
-    const db = getDb();
-    const otps = db.collection('otp_codes');
-    const users = db.collection('users');
-
-    // Find OTP
-    const otpRecord = await otps.findOne({ email });
-
-    if (!otpRecord) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
-
-    // Check expiry
-    if (new Date() > otpRecord.expiresAt) {
-      return res.status(400).json({ error: 'OTP has expired' });
-    }
-
-    // Check Match
-    if (otpRecord.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    // Get User Role
-    const user = await users.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: 'User not found' });
-    }
-
-    // Valid! Login successful.
-    // Optional: Delete OTP after use to prevent replay
-    await otps.deleteOne({ email });
 
     res.json({ success: true, user: { email: user.email, role: user.role } });
   } catch (error) {
-    console.error('Verify OTP error:', error);
-    res.status(500).json({ error: 'Verification failed' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
