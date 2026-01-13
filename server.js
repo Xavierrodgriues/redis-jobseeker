@@ -163,31 +163,34 @@ app.post('/api/v1/request-for-link', async (req, res) => {
 
 // --- AUTHENTICATION ENDPOINTS ---
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Configure Nodemailer Transporter
-// IMPORTANT: Replace with valid SMTP credentials for production
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // or your preferred service
-  auth: {
-    user: 'yatendrayuvii@gmail.com', // Replace with environment variable
-    pass: 'hyhy leyd plkd ebme'      // Replace with environment variable
-  }
-});
+// Initialize Resend with provided API Key
+const resend = new Resend('re_5tMCwum6_GF3CfuSzZR4kQoKfJzLTWQVU');
 
-// Helper to send email
+// Helper to send email using Resend
 async function sendUtcEmail(email, otp) {
   try {
-    const mailOptions = {
-      from: '"Yuvii Job Scraper" <yatendrayuvii@gmail.com>', // Match auth user
-      to: email,
+    // Note: 'from' address must be from a verified domain or onboarding@resend.dev
+    // Using onboarding@resend.dev requires the recipient to be the account owner,
+    // or the domain must be verified.
+    // If the user has a custom domain verified, they should update 'from'.
+    const { data, error } = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: [email],
       subject: 'Your Login OTP',
-      text: `Your One-Time Password (OTP) for login is: ${otp}. It expires in 5 minutes.`
-    };
+      html: `<p>Your One-Time Password (OTP) for login is: <strong>${otp}</strong>. It expires in 5 minutes.</p>`,
+      reply_to: 'yatendrayuvii@gmail.com'
+    });
 
-    // Attempt to send email
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`📧 OTP sent to ${email}. MessageId: ${info.messageId}`);
+    if (error) {
+      console.error('Resend Email Error:', error);
+      // Fallback logging for dev/testing if email fails
+      console.log(`🔐 [DEV ONLY - Email Failed] OTP for ${email}: ${otp}`);
+      return;
+    }
+
+    console.log(`📧 OTP sent to ${email}. ID: ${data ? data.id : 'unknown'}`);
 
     // FOR DEV/PROTOTYPE: Log OTP to console ensuring we can log in even without valid SMTP
     console.log(`🔐 [DEV ONLY] OTP for ${email}: ${otp}`);
