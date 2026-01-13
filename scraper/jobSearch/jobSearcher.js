@@ -46,6 +46,10 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
   let pageNum = 0;
   let page = null;
 
+  page.setDefaultTimeout(60000);
+  page.setDefaultNavigationTimeout(60000);
+
+
   try {
     page = await browser.newPage();
     // Randomize viewport slightly
@@ -166,10 +170,24 @@ async function searchJobLinks(jobData, processId) {
   let browser = null;
 
   try {
+    console.log("Launching browser...");
+
     browser = await puppeteer.launch({
       headless: "new",
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-features=IsolateOrigins,site-per-process']
+      protocolTimeout: 120000,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
+      ],
     });
+
+
+    console.log("Browser launched");
+
 
     const jobBoards = [
       // 1. FlexJobs
