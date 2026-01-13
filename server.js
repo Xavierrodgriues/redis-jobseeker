@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); // Force restart
 const bcrypt = require('bcryptjs');
 
 const app = express();
@@ -171,7 +171,7 @@ const transporter = nodemailer.createTransport({
   service: 'gmail', // or your preferred service
   auth: {
     user: 'yatendrayuvii@gmail.com', // Replace with environment variable
-    pass: 'hwbg cbno kgci njnh'      // Replace with environment variable
+    pass: 'hyhy leyd plkd ebme'      // Replace with environment variable
   }
 });
 
@@ -179,15 +179,15 @@ const transporter = nodemailer.createTransport({
 async function sendUtcEmail(email, otp) {
   try {
     const mailOptions = {
-      from: '"Yuvii Job Scraper" <no-reply@yuvii.com>',
+      from: '"Yuvii Job Scraper" <yatendrayuvii@gmail.com>', // Match auth user
       to: email,
       subject: 'Your Login OTP',
       text: `Your One-Time Password (OTP) for login is: ${otp}. It expires in 5 minutes.`
     };
 
     // Attempt to send email
-    await transporter.sendMail(mailOptions);
-    console.log(`📧 OTP sent to ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`📧 OTP sent to ${email}. MessageId: ${info.messageId}`);
 
     // FOR DEV/PROTOTYPE: Log OTP to console ensuring we can log in even without valid SMTP
     console.log(`🔐 [DEV ONLY] OTP for ${email}: ${otp}`);
@@ -333,8 +333,8 @@ app.get('/api/v1/admin/users', async (req, res) => {
 // Admin: Create User
 app.post('/api/v1/admin/users', async (req, res) => {
   try {
-    const { email, role } = req.body;
-    if (!email || !role) return res.status(400).json({ error: 'Missing fields' });
+    const { email, role, password } = req.body;
+    if (!email || !role || !password) return res.status(400).json({ error: 'Missing fields' });
 
     const db = getDb();
     const users = db.collection('users');
@@ -342,7 +342,8 @@ app.post('/api/v1/admin/users', async (req, res) => {
     const existing = await users.findOne({ email });
     if (existing) return res.status(400).json({ error: 'User already exists' });
 
-    await users.insertOne({ email, role, createdAt: new Date() });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await users.insertOne({ email, role, password: hashedPassword, createdAt: new Date() });
     res.json({ success: true, message: 'User created' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create user' });
