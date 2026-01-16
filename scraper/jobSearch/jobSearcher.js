@@ -46,12 +46,13 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
   let pageNum = 0;
   let page = null;
 
-  page.setDefaultTimeout(60000);
-  page.setDefaultNavigationTimeout(60000);
-
-
   try {
     page = await browser.newPage();
+    if(!page) throw new Error("Failed to create page");
+    
+    page.setDefaultTimeout(60000);
+    page.setDefaultNavigationTimeout(60000);
+
     // Randomize viewport slightly
     const width = 1366 + Math.floor(Math.random() * 100);
     const height = 768 + Math.floor(Math.random() * 100);
