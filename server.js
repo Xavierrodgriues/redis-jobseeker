@@ -1,4 +1,4 @@
-const express = require('express'); // Force restart
+﻿const express = require('express'); // Force restart
 const bcrypt = require('bcryptjs');
 
 const app = express();
@@ -402,15 +402,27 @@ app.post('/api/v1/admin/users', async (req, res) => {
   }
 });
 
-// Admin: Update User Role
+// Admin: Update User Role or Password
 app.put('/api/v1/admin/users/:email', async (req, res) => {
   try {
     const { email } = req.params;
-    const { role } = req.body;
+    const { role, password } = req.body;
     const db = getDb();
-    await db.collection('users').updateOne({ email }, { $set: { role } });
-    res.json({ success: true });
+
+    const updateFields = {};
+    if (role) updateFields.role = role;
+    if (password) {
+      updateFields.password = await bcrypt.hash(password, 10);
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    await db.collection('users').updateOne({ email }, { $set: updateFields });
+    res.json({ success: true, message: 'User updated successfully' });
   } catch (error) {
+    console.error('Update error:', error);
     res.status(500).json({ error: 'Update failed' });
   }
 });
@@ -431,5 +443,3 @@ app.delete('/api/v1/admin/users/:email', async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-
