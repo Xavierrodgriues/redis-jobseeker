@@ -163,44 +163,14 @@ app.post('/api/v1/request-for-link', async (req, res) => {
 
 // --- AUTHENTICATION ENDPOINTS ---
 
-const { Resend } = require('resend');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
-// Initialize Resend with provided API Key
-const resend = new Resend('re_5tMCwum6_GF3CfuSzZR4kQoKfJzLTWQVU');
+// Helper: Ensure admin exists and handle TOTP logic
+
 
 // Helper to send email using Resend
-async function sendUtcEmail(email, otp) {
-  try {
-    // Note: 'from' address must be from a verified domain or onboarding@resend.dev
-    // Using onboarding@resend.dev requires the recipient to be the account owner,
-    // or the domain must be verified.
-    // If the user has a custom domain verified, they should update 'from'.
-    const { data, error } = await resend.emails.send({
-      from: 'onboarding@resend.dev',
-      to: [email],
-      subject: 'Your Login OTP',
-      html: `<p>Your One-Time Password (OTP) for login is: <strong>${otp}</strong>. It expires in 5 minutes.</p>`,
-      reply_to: 'yatendrayuvii@gmail.com'
-    });
 
-    if (error) {
-      console.error('Resend Email Error:', error);
-      // Fallback logging for dev/testing if email fails
-      console.log(`🔐 [DEV ONLY - Email Failed] OTP for ${email}: ${otp}`);
-      return;
-    }
-
-    console.log(`📧 OTP sent to ${email}. ID: ${data ? data.id : 'unknown'}`);
-
-    // FOR DEV/PROTOTYPE: Log OTP to console ensuring we can log in even without valid SMTP
-    console.log(`🔐 [DEV ONLY] OTP for ${email}: ${otp}`);
-
-  } catch (error) {
-    console.error('Error sending email:', error);
-    // In dev, we might still want to succeed if we are just logging
-    console.log(`🔐 [DEV ONLY] OTP for ${email}: ${otp}`);
-  }
-}
 
 // PUBLIC REGISTRATION REMOVED - ONLY ADMIN CAN CREATE USERS
 // app.post('/api/v1/register', async (req, res) => {
@@ -270,55 +240,134 @@ app.post('/api/v1/auth/login', async (req, res) => {
 
 // --- ADMIN ROUTES ---
 
-app.post('/api/v1/admin/send-otp', async (req, res) => {
+// 1. Init Auth: Check if admin exists & TOTP status
+app.post('/api/v1/admin/auth-init', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const db = getDb();
     const admins = db.collection('admins');
-    const otps = db.collection('otp_codes');
 
+    // Check if admin exists
     const admin = await admins.findOne({ email });
-    if (!admin) return res.status(403).json({ error: 'Access denied. not an admin.' });
+    if (!admin) {
+      // Security: Don't reveal if admin exists, but for this internal tool we might return 403
+      return res.status(403).json({ error: 'Access denied.' });
+    }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Return status
+    res.json({
+      success: true,
+      totpEnabled: !!admin.totpEnabled
+    });
 
-    await otps.updateOne(
-      { email },
-      { $set: { otp, expiresAt, createdAt: new Date() } },
-      { upsert: true }
-    );
-
-    await sendUtcEmail(email, otp);
-    res.json({ success: true, message: 'Admin OTP sent' });
   } catch (error) {
-    console.error('Admin Send OTP error:', error);
-    res.status(500).json({ error: 'Failed' });
+    console.error('Auth Init Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.post('/api/v1/admin/verify-otp', async (req, res) => {
+// 2. Setup TOTP: Generate Secret & QR Code
+app.post('/api/v1/admin/totp-setup', async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email } = req.body;
     const db = getDb();
-    const otps = db.collection('otp_codes');
     const admins = db.collection('admins');
 
-    const otpRecord = await otps.findOne({ email });
-    if (!otpRecord || otpRecord.otp !== otp || new Date() > otpRecord.expiresAt) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    const admin = await admins.findOne({ email });
+    if (!admin) return res.status(403).json({ error: 'Access denied.' });
+
+    if (admin.totpEnabled) {
+      return res.status(400).json({ error: 'TOTP already enabled.' });
     }
 
-    const admin = await admins.findOne({ email });
-    if (!admin) return res.status(403).json({ error: 'Not an admin' });
+    // Generate secret
+    const secret = speakeasy.generateSecret({
+      name: `RedisJobScraper (${email})`
+    });
 
-    await otps.deleteOne({ email });
-    res.json({ success: true, admin: { email: admin.email, role: 'admin' } });
+    // Generate QR Code
+    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
+
+    // Store secret TEMPORARILY or permanently? 
+    // Best practice: Store secret but mark as disabled until verified.
+    // We update the admin doc with the secret but keep totpEnabled: false
+    await admins.updateOne(
+      { email },
+      { $set: { tempSecret: secret.base32 } }
+    );
+
+    res.json({
+      success: true,
+      qrCode: qrCodeUrl,
+      secret: secret.base32 // Optional: validation if needed manually
+    });
+
   } catch (error) {
-    console.error('Admin Verify OTP error:', error);
-    res.status(500).json({ error: 'Failed' });
+    console.error('TOTP Setup Error:', error);
+    res.status(500).json({ error: 'Setup failed' });
+  }
+});
+
+// 3. Verify TOTP (Enable or Login)
+app.post('/api/v1/admin/totp-verify', async (req, res) => {
+  try {
+    const { email, token } = req.body; // token = 6 digit OTP
+    const db = getDb();
+    const admins = db.collection('admins');
+
+    const admin = await admins.findOne({ email });
+    if (!admin) return res.status(403).json({ error: 'Access denied.' });
+
+    // Determine which secret to use
+    // If totpEnabled is FALSE, we verify against `tempSecret` and then enable it.
+    // If totpEnabled is TRUE, we verify against `totpSecret`.
+
+    let secret = '';
+    let isSetupPhase = false;
+
+    if (!admin.totpEnabled) {
+      if (!admin.tempSecret) return res.status(400).json({ error: 'Setup not initialized.' });
+      secret = admin.tempSecret;
+      isSetupPhase = true;
+    } else {
+      secret = admin.totpSecret;
+    }
+
+    // Verify
+    const verified = speakeasy.totp.verify({
+      secret: secret,
+      encoding: 'base32',
+      token: token,
+      window: 1 // Allow 30s drift
+    });
+
+    if (verified) {
+      if (isSetupPhase) {
+        // Enable TOTP permanently
+        await admins.updateOne(
+          { email },
+          {
+            $set: { totpEnabled: true, totpSecret: secret },
+            $unset: { tempSecret: "" }
+          }
+        );
+      }
+
+      // Return Admin Session Data
+      res.json({
+        success: true,
+        admin: { email: admin.email, role: 'admin' },
+        message: isSetupPhase ? 'TOTP Enabled Successfully' : 'Login Successful'
+      });
+    } else {
+      res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+  } catch (error) {
+    console.error('TOTP Verify Error:', error);
+    res.status(500).json({ error: 'Verification failed' });
   }
 });
 

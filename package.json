@@ -18,8 +18,10 @@
     "ioredis": "^5.8.2",
     "mongodb": "^7.0.0",
     "nodemon": "^3.1.11",
+    "qrcode": "^1.5.4",
     "redis": "^4.6.10",
-    "resend": "^6.7.0"
+    "resend": "^6.7.0",
+    "speakeasy": "^2.0.0"
   },
   "keywords": [],
   "author": "",
