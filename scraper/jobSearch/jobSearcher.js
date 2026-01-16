@@ -49,7 +49,7 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
   try {
     page = await browser.newPage();
     if(!page) throw new Error("Failed to create page");
-    
+
     page.setDefaultTimeout(60000);
     page.setDefaultNavigationTimeout(60000);
 
@@ -175,14 +175,13 @@ async function searchJobLinks(jobData, processId) {
 
     browser = await puppeteer.launch({
       headless: "new",
-      protocolTimeout: 120000,
+      protocolTimeout: 180000,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-zygote',
-        '--single-process'
       ],
     });
 
@@ -623,7 +622,7 @@ async function searchJobLinks(jobData, processId) {
       }
     ];
 
-    const MAX_CONCURRENT = 3; // Reduced concurrency for safety
+    const MAX_CONCURRENT = 2; // Reduced concurrency for safety
 
     // Chunk processing
     for (let i = 0; i < jobBoards.length; i += MAX_CONCURRENT) {
