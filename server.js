@@ -1,4 +1,6 @@
-﻿const express = require('express'); // Force restart
+﻿const dns = require("node:dns/promises");
+dns.setServers(["1.1.1.1"]);
+const express = require('express'); // Force restart
 const bcrypt = require('bcryptjs');
 
 const app = express();
