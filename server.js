@@ -35,10 +35,10 @@ const cors = require('cors');
 app.use(cors());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Search API
+// Search API (with pagination)
 app.get('/api/v1/search', async (req, res) => {
   try {
-    const { role, experience, sortBy, dateRange } = req.query;
+    const { role, experience, sortBy, dateRange, page = 1, limit = 12 } = req.query;
     const db = getDb();
     const collection = db.collection('job_links');
 
@@ -76,9 +76,33 @@ app.get('/api/v1/search', async (req, res) => {
       sortOptions = { scrapedAt: 1 };
     }
 
-    const jobs = await collection.find(query).sort(sortOptions).toArray();
+    // Pagination
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 12;
+    const skip = (pageNum - 1) * limitNum;
 
-    res.json({ jobs });
+    // Get total count for pagination
+    const totalJobs = await collection.countDocuments(query);
+    const totalPages = Math.ceil(totalJobs / limitNum);
+
+    // Fetch paginated jobs
+    const jobs = await collection.find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum)
+      .toArray();
+
+    res.json({
+      jobs,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalJobs,
+        limit: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
+      }
+    });
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ error: 'Failed to fetch jobs' });
@@ -373,13 +397,41 @@ app.post('/api/v1/admin/totp-verify', async (req, res) => {
   }
 });
 
-// Admin: Get All Users
+// Admin: Get All Users (with pagination)
 app.get('/api/v1/admin/users', async (req, res) => {
   try {
     const db = getDb();
-    const users = await db.collection('users').find({}).toArray();
-    res.json({ users });
+    const collection = db.collection('users');
+
+    // Pagination params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalUsers = await collection.countDocuments({});
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    // Fetch paginated users
+    const users = await collection.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    res.json({
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
+    console.error('Fetch users error:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
