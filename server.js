@@ -27,7 +27,16 @@ const path = require('path');
 const { connectToMongo, getDb } = require('./scraper/mongo');
 
 // Connect to MongoDB
-connectToMongo().catch(console.error);
+// Connect to MongoDB
+connectToMongo().then(() => {
+  // Start server only after DB is connected
+  app.listen(PORT, async () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to connect to MongoDB', err);
+  process.exit(1);
+});
 
 // Middleware
 app.use(express.json());
@@ -494,6 +503,4 @@ app.delete('/api/v1/admin/users/:email', async (req, res) => {
 });
 
 
-app.listen(PORT, async () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+
