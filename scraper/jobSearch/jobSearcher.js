@@ -48,7 +48,7 @@ async function searchJobBoard(query, processId, browser, minResults = 20) {
 
   try {
     page = await browser.newPage();
-    if(!page) throw new Error("Failed to create page");
+    if (!page) throw new Error("Failed to create page");
 
     page.setDefaultTimeout(60000);
     page.setDefaultNavigationTimeout(60000);
@@ -222,7 +222,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'WeWorkRemotely',
         dynamic: false,
-        getUrl: (page) => `https://weworkremotely.com/remote-jobs/search?term=${encodeURIComponent(role)}`,
+        getUrl: (page) => `https://weworkremotely.com/remote-jobs/search?term=${encodeURIComponent(role)}&sort=Past+24+Hours`,
         extractor: ($, source) => {
           const links = [];
           $('section.jobs li a').each((i, el) => {
@@ -265,7 +265,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'WorkingNomads',
         dynamic: false,
-        getUrl: (page) => `https://www.workingnomads.com/jobs?q=${encodeURIComponent(role)}`,
+        getUrl: (page) => `https://www.workingnomads.com/jobs?q=${encodeURIComponent(role)}&postedDate=1`,
         extractor: ($, source) => {
           const links = [];
           $('a.job-list-item').each((i, el) => {
@@ -321,7 +321,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'VirtualVocations',
         dynamic: false,
-        getUrl: (page) => `https://www.virtualvocations.com/jobs/q-${encodeURIComponent(role)}/page/${page + 1}`,
+        getUrl: (page) => `https://www.virtualvocations.com/jobs/q-${encodeURIComponent(role)}/d-24/page/${page + 1}`,
         extractor: ($, source) => {
           const links = [];
           $('a.job-link').each((i, el) => {
@@ -405,7 +405,12 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'PowerToFly',
         dynamic: false,
-        getUrl: (page) => `https://powertofly.com/jobs/?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}`,
+        getUrl: (page) => {
+          const date = new Date();
+          date.setDate(date.getDate() - 1);
+          const formattedDate = date.toISOString().split('T')[0];
+          return `https://powertofly.com/jobs/?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&created__from=${formattedDate}`;
+        },
         extractor: ($, source) => {
           const links = [];
           $('a.job-card-link').each((i, el) => {
@@ -433,7 +438,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'Indeed',
         dynamic: true,
-        getUrl: (page) => `https://www.indeed.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fromage=2&start=${page * 10}`,
+        getUrl: (page) => `https://www.indeed.com/jobs?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fromage=1&start=${page * 10}`,
         extractor: (source) => {
           const links = [];
           // Indeed changes selectors often, try multiple
@@ -456,7 +461,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'Monster',
         dynamic: false,
-        getUrl: (page) => `https://www.monster.com/jobs/search?q=${encodeURIComponent(role)}&where=${encodeURIComponent(location)}&tm=2&page=${page + 1}`,
+        getUrl: (page) => `https://www.monster.com/jobs/search?q=${encodeURIComponent(role)}&where=${encodeURIComponent(location)}&tm=1&page=${page + 1}`,
         extractor: ($, source) => {
           const links = [];
           $('a[data-testid="job-card-link"]').each((i, elem) => {
@@ -470,7 +475,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'Glassdoor',
         dynamic: true,
-        getUrl: (page) => `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=C&locId=1&locKeyword=${encodeURIComponent(location)}&fromAge=2`,
+        getUrl: (page) => `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(role)}&locT=C&locId=1&locKeyword=${encodeURIComponent(location)}&fromAge=1`,
         extractor: (source) => {
           const links = [];
           const output = document.querySelectorAll('a.jobLink, a[data-test="job-link"]');
@@ -495,7 +500,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'LinkedIn',
         dynamic: true,
-        getUrl: (page) => `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&f_TPR=r172800&start=${page * 25}`,
+        getUrl: (page) => `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&f_TPR=r86400&start=${page * 25}`,
         extractor: (source) => {
           const links = [];
           // base-card__full-link is common for "guest" search view
@@ -518,7 +523,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'ZipRecruiter',
         dynamic: true,
-        getUrl: (page) => `https://www.ziprecruiter.com/candidate/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&days=2&page=${page + 1}`,
+        getUrl: (page) => `https://www.ziprecruiter.com/candidate/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&days=1&page=${page + 1}`,
         extractor: (source) => {
           const links = [];
           const output = document.querySelectorAll('a.job_link');
@@ -540,7 +545,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'CareerBuilder',
         dynamic: false,
-        getUrl: (page) => `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&posted=2&page_number=${page + 1}`,
+        getUrl: (page) => `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&posted=1&page_number=${page + 1}`,
         extractor: ($, source) => {
           const links = [];
           $('a.data-results-content').each((i, elem) => {
@@ -554,7 +559,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'Dice',
         dynamic: true,
-        getUrl: (page) => `https://www.dice.com/jobs?q=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&filters.postedDate=2&p=${page + 1}`,
+        getUrl: (page) => `https://www.dice.com/jobs?q=${encodeURIComponent(role)}&location=${encodeURIComponent(location)}&filters.postedDate=1&p=${page + 1}`,
         extractor: (source) => {
           const links = [];
           // Dice uses Shadow DOM sometimes, or complex React. selector might find nothing if not lucky.
@@ -577,7 +582,7 @@ async function searchJobLinks(jobData, processId) {
       {
         name: 'SimplyHired',
         dynamic: true,
-        getUrl: (page) => `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fdb=2&curr_page=${page + 1}`,
+        getUrl: (page) => `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location)}&fdb=1&curr_page=${page + 1}`,
         extractor: (source) => {
           const links = [];
           const output = document.querySelectorAll('a.SerpJob-link, h3[data-testid="searchSerpJobTitle"] a');
